@@ -56,16 +56,20 @@ class CargoWebpage:
         except TimeoutException:
             # TODO: Add popup to let user know page didn't load correctly
             if error_message is None:
-                print("Webpage Timeout")
+                self.quit_selenium()
+                print("Unable to load webpage")
             else:
+                self.quit_selenium()
                 print(error_message)
             return False
 
         return True
 
     def check_login(self):
+        """Check if user profile is visibile. If it is, login was sucessful. If not, then login failed. """
         if not self.check_webpage_loaded("//div[@class='DlinkLoggedIn']//a[normalize-space()='Logout']",
                                          wait_time=5, error_message="Login Failed"):
+            self.quit_selenium()
             return False
         return True
 
