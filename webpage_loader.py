@@ -55,7 +55,7 @@ class CargoWebpage:
         try:
             WebDriverWait(self.driver, wait_time).until(EC.visibility_of_element_located((By.XPATH, element)))
         except TimeoutException:
-            # TODO: Add popup to let user know page didn't load correctly
+            # TODO: Remove print statements once pop up message has been coded.
             if error_message is None:
                 self.quit_selenium()
                 print("Unable to load webpage")
@@ -67,7 +67,8 @@ class CargoWebpage:
         return True
 
     def check_login(self):
-        """Check if user profile is visibile. If it is, login was sucessful. If not, then login failed. """
+        """Check if user profile is visible. If it is, login was successful. If not, then login failed. """
+
         if not self.check_webpage_loaded("//div[@class='DlinkLoggedIn']//a[normalize-space()='Logout']",
                                          wait_time=5, error_message="Login Failed"):
             self.quit_selenium()
@@ -76,17 +77,14 @@ class CargoWebpage:
 
     def login(self):
         self._validate_credentials()
-        if self.check_webpage_loaded("//input[@id='UserName']", 5):
-            username_field = self.driver.find_element(By.XPATH, "//input[@id='UserName']")
-            username_field.send_keys(self.username)
+        username_field = self.driver.find_element(By.XPATH, "//input[@id='UserName']")
+        username_field.send_keys(self.username)
 
-            password_field = self.driver.find_element(By.XPATH, "//input[@id='pwd']")
-            password_field.send_keys(self.password)
+        password_field = self.driver.find_element(By.XPATH, "//input[@id='pwd']")
+        password_field.send_keys(self.password)
 
-            login_button = self.driver.find_element(By.XPATH, "//button[@id='load2']")
-            login_button.click()
+        login_button = self.driver.find_element(By.XPATH, "//button[@id='load2']")
+        login_button.click()
 
-            return self.check_login()
 
-        return False
 

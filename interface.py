@@ -93,15 +93,32 @@ class CargoInterface(ctk.CTk):
         self.webpage.start_selenium()
         self.webpage.load_url(URL)
 
-    def check_login(self):
-        if not self.webpage.login():
+    def starting_webpage_loaded(self):
+        """Check if the starting webpage is loaded correctly"""
+
+        # Check if starting webpage is loaded correctly. If it's not add a popup.
+        if not self.webpage.check_webpage_loaded("//input[@id='UserName']", wait_time=5):
             pass
-            # TODO: Add popup to let user know unsucessful login
+            # TODO: Add popup to let user know page didn't load correctly
+            return False
+        return True
+
+    def check_login(self):
+        """Check if login was successful"""
+
+        # If login was unsuccessful provide popup.
+        if not self.webpage.check_login():
+            #TODO: Add popup to let user know login was unsucessful
+            return False
+        return True
 
     def sla_bot_report_click(self):
         self._start_selenium()
         self._set_credentials()
-        self.check_login()
+        if self.starting_webpage_loaded():
+            self.webpage.login()
+            if self.check_login():
+                pass
 
 
 
