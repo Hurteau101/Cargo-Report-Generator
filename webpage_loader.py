@@ -44,6 +44,7 @@ class CargoWebpage:
         self.driver.quit()
 
     def _validate_credentials(self):
+        """Check if username and password were passed in"""
         if self._password is None or self._username is None:
             self.quit_selenium()
             raise ValueError("Username and Password must be set before attempting to login.")
