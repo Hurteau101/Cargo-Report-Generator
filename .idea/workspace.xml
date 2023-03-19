@@ -8,8 +8,8 @@
       <change beforePath="$PROJECT_DIR$/.idea/Final Cargo Program.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Final Cargo Program.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cargo_loader.py" beforeDir="false" afterPath="$PROJECT_DIR$/webpage_loader.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/interface.py" beforeDir="false" afterPath="$PROJECT_DIR$/interface.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webpage_loader.py" beforeDir="false" afterPath="$PROJECT_DIR$/webpage_loader.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/webpage_settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/webpage_settings.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
