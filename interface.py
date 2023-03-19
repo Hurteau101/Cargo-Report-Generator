@@ -1,10 +1,22 @@
 import customtkinter as ctk
 from datetime import datetime
+from webpage_loader import CargoWebpage
+from dotenv import load_dotenv
+import os
+import tkinter as tk
+
+
+# Loading the environment variables into constants.
+load_dotenv()
+USERNAME = os.getenv("USERNAME")
+PASSWORD = os.getenv("PASSWORD")
+URL = os.getenv("CARGO_URL")
 
 
 class CargoInterface(ctk.CTk):
     def __init__(self):
         super().__init__()
+        load_dotenv()
         self.title("Cargo Interface")
         self.geometry("500x350")
         ctk.set_appearance_mode("System")
@@ -29,33 +41,48 @@ class CargoInterface(ctk.CTk):
         self.main_frame = ctk.CTkFrame(self.tabview.tab("SLA/Bot Report"))
         self.main_frame.pack(fill="x", pady=(0, 10))
 
-        # Settings Layout
+        # Settings
         self.setting_label = ctk.CTkLabel(master=self.setting_frame, text="Settings:")
-        self.setting_label.grid(row=0, column=0, sticky="w", pady=5, padx=(10, 10))
+        self.setting_label.pack()
 
-        self.day_label = ctk.CTkLabel(master=self.setting_frame, text="Days")
-        self.day_label.grid(row=1, column=0, sticky="w", pady=10, padx=(10, 0))
-        self.days_combobox = ctk.CTkComboBox(self.setting_frame,
-                                             values=["1", "2", "3", "4", "5", "6", "7", "8"])
-        self.days_combobox.grid(row=1, column=1, sticky="w", padx=(0, 50))
+        # Days Setting Frame
+        self.day_frame = ctk.CTkFrame(master=self.setting_frame, height=40, fg_color="transparent")
+        self.day_frame.pack(side="left", padx=(80, 50), pady=(0, 20))
 
-        self.from_date_label = ctk.CTkLabel(master=self.setting_frame, text="Date From:")
-        self.from_date_label.grid(row=1, column=2)
+        # Date Setting Frame
+        self.date_frame = ctk.CTkFrame(master=self.setting_frame, height=40, fg_color="transparent")
+        self.date_frame.pack(side="left", pady=(0, 20))
 
-        self.from_date_entry = ctk.CTkEntry(master=self.setting_frame,
-                                            placeholder_text=self.place_holder_date(),
-                                            placeholder_text_color="gray")
-        self.from_date_entry.grid(row=1, column=3, padx=(10, 0))
+        # Day Settings
+        self.day_label = ctk.CTkLabel(master=self.day_frame, text="Days")
+        self.day_label.pack()
+
+        self.day_box = ctk.CTkEntry(master=self.day_frame)
+        self.day_box.pack()
+
+        # Date Setting
+        self.date_label = ctk.CTkLabel(master=self.date_frame, text="Date")
+        self.date_label.pack()
+
+        self.date_box = ctk.CTkEntry(master=self.date_frame)
+        self.date_box.pack(side="left")
 
         # SLA/Bot Report - Main Layout
         self.button = ctk.CTkButton(master=self.main_frame, text="Webpage Load")
         self.button.grid(row=0, column=0)
+        self.spin = tk.Spinbox(master=self.main_frame, from_=0, to=10, bd=3, justify="center", wrap=False)
+        self.spin.grid(row=1, column=0, pady=10)
 
-    @classmethod
-    def place_holder_date(cls):
+    def default_day_value(self):
+        self.day_box.insert(ctk.END, "8")
+
+    def default_date_value(self):
         today_date = datetime.today().date()
-        return today_date.strftime("%d-%b-%Y")
+        self.date_box.insert(ctk.END, today_date.strftime("%d-%b-%Y"))
 
+    def sla_bot_report_click(self):
+        load_dotenv()
+        self.cargo.load_url(os.getenv("CARGO_URL"))
 
 cargo = CargoInterface()
 cargo.mainloop()
