@@ -1,10 +1,12 @@
 import customtkinter as ctk
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from webpage_loader import CargoWebpage
 from dotenv import load_dotenv
 import os
 import tkinter as tk
+import tkinter.messagebox as messagebox
+import threading
 
 
 # Loading the environment variables into constants.
@@ -28,6 +30,13 @@ class CargoInterface(ctk.CTk):
         # Main Frame Layout
         self.main_frame = ctk.CTkFrame(master=self)
         self.main_frame.pack(expand=True, fill="both")
+
+        # Menu Bar
+        file_menu = tk.Menu(master=self)
+        submenu = tk.Menu(file_menu, tearoff=0)
+        submenu.add_command(label="Settings")
+        file_menu.add_cascade(label="File", menu=submenu)
+        self.config(menu=file_menu)
 
         # Tab Layout
         self.tabview = ctk.CTkTabview(self.main_frame)
@@ -73,9 +82,8 @@ class CargoInterface(ctk.CTk):
         self.default_date_value()
 
         # SLA/Bot Report - Main Layout
-        self.button = ctk.CTkButton(master=self.main_frame, text="Webpage Load", command=self.sla_bot_report_click)
+        self.button = ctk.CTkButton(master=self.main_frame, text="Webpage Load", command=self.sla_bot_report_command)
         self.button.pack()
-
 
     def default_day_value(self):
         self.day_box.insert(ctk.END, "8")
@@ -89,37 +97,49 @@ class CargoInterface(ctk.CTk):
         self.webpage.username = USERNAME
         self.webpage.password = PASSWORD
 
-    def _start_selenium(self):
+    def start_selenium(self):
         self.webpage.start_selenium()
         self.webpage.load_url(URL)
 
-    def starting_webpage_loaded(self):
-        """Check if the starting webpage is loaded correctly"""
+    @classmethod
+    def display_error(cls, title, message):
+        messagebox.showerror(cls, message)
+
+    def check_page_load(self):
+        """Check if the webpage is loaded correctly"""
 
         # Check if starting webpage is loaded correctly. If it's not add a popup.
         if not self.webpage.check_webpage_loaded("//input[@id='UserName']", wait_time=5):
-            pass
-            # TODO: Add popup to let user know page didn't load correctly
+            messagebox.showerror("Webpage Load Error", "The webpage did not load correctly")
             return False
         return True
 
-    def check_login(self):
-        """Check if login was successful"""
+    def login_success(self):
+        """Check if login was successful. Similar to check_login on webpage_loader class, this is to check if a popup
+        is needed if login was unsuccessful"""
 
         # If login was unsuccessful provide popup.
         if not self.webpage.check_login():
-            #TODO: Add popup to let user know login was unsucessful
+            messagebox.showerror("Login Unsuccessful", "The login was unsuccessful")
             return False
         return True
 
-    def sla_bot_report_click(self):
-        self._start_selenium()
-        self._set_credentials()
-        if self.starting_webpage_loaded():
-            self.webpage.login()
-            if self.check_login():
-                pass
+    def sla_bot_report_command(self):
+        thread = threading.Thread(target=self.sla_bot_report_click)
+        thread.start()
 
+    def sla_bot_report_click(self):
+        self.start_selenium()
+        self._set_credentials()
+
+        # Check all conditions. This will make sure nothing failed before making it to the "Airway bills to Ship Report"
+        loading_waybill_page = all((self.check_page_load(),
+                                    self.webpage.login(),
+                                    self.login_success(),
+                                    self.webpage.waybills_to_ship_page()))
+
+        if loading_waybill_page:
+            pass
 
 
 cargo = CargoInterface()

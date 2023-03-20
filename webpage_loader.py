@@ -1,4 +1,3 @@
-from webpage_settings import WebpageSettings
 from selenium.webdriver.chrome.service import Service
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -6,6 +5,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
+from datetime import date
 import time
 
 
@@ -49,31 +49,21 @@ class CargoWebpage:
             self.quit_selenium()
             raise ValueError("Username and Password must be set before attempting to login.")
 
-    def check_webpage_loaded(self, element: str, wait_time: int, error_message: str = None):
+    def check_webpage_loaded(self, element: str, wait_time: int):
         """Check if a webpage is loaded or not.
         Pass in the XPATH string, the wait time length and an optional error message"""
         try:
             WebDriverWait(self.driver, wait_time).until(EC.visibility_of_element_located((By.XPATH, element)))
         except TimeoutException:
-            # TODO: Remove print statements once pop up message has been coded.
-            if error_message is None:
-                self.quit_selenium()
-                print("Unable to load webpage")
-            else:
-                self.quit_selenium()
-                print(error_message)
+            self.quit_selenium()
             return False
 
         return True
 
     def check_login(self):
         """Check if user profile is visible. If it is, login was successful. If not, then login failed. """
-
-        if not self.check_webpage_loaded("//div[@class='DlinkLoggedIn']//a[normalize-space()='Logout']",
-                                         wait_time=5, error_message="Login Failed"):
-            self.quit_selenium()
-            return False
-        return True
+        return self.check_webpage_loaded(element="//div[@class='DlinkLoggedIn']//a[normalize-space()='Logout']",
+                                         wait_time=2)
 
     def login(self):
         self._validate_credentials()
@@ -85,6 +75,24 @@ class CargoWebpage:
 
         login_button = self.driver.find_element(By.XPATH, "//button[@id='load2']")
         login_button.click()
+
+    def waybills_to_ship_page(self):
+        self.load_url("https://cargo.perimeter.ca/webmaster/reports/GeneralReport/Default?report_id=75")
+        if self.check_webpage_loaded("//input[@id='txt_from_date75']", wait_time=5):
+            return True
+        return False
+
+    @classmethod
+    def today_date(cls):
+        today = date.today()
+        return today.strftime("%d-%b-%Y")
+
+    def waybills_data(self, from_date: str):
+        from_date_field = self.driver.find_element(By.XPATH, "//input[@id='txt_from_date75']")
+        from_airport_field = self.driver.find_element(By.XPATH, "/html/body/div[7]/form/div/div[1]/div/div/div/div["
+                                                                "4]/div/div[2]/div/select")
+        to_airport_field = self.driver.find_element(By.XPATH, "/html/body/div[7]/form/div/div[1]/div/div/div/div["
+                                                              "5]/div/div[2]/div/select")
 
 
 
