@@ -66,6 +66,7 @@ class CargoWebpage:
                                          wait_time=2)
 
     def login(self):
+        """Login into the webpage"""
         self._validate_credentials()
         username_field = self.driver.find_element(By.XPATH, "//input[@id='UserName']")
         username_field.send_keys(self.username)

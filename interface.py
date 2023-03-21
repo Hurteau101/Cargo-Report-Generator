@@ -7,6 +7,7 @@ import os
 import tkinter as tk
 import tkinter.messagebox as messagebox
 import threading
+from setting_window import SettingWindow
 
 
 # Loading the environment variables into constants.
@@ -26,6 +27,8 @@ class CargoInterface(ctk.CTk):
         ctk.set_appearance_mode("System")
         ctk.set_default_color_theme("blue")
         self.resizable(False, False)
+        self.setting_window = None
+
 
         # Main Frame Layout
         self.main_frame = ctk.CTkFrame(master=self)
@@ -34,7 +37,7 @@ class CargoInterface(ctk.CTk):
         # Menu Bar
         file_menu = tk.Menu(master=self)
         submenu = tk.Menu(file_menu, tearoff=0)
-        submenu.add_command(label="Settings")
+        submenu.add_command(label="Settings", command=self.open_settings)
         file_menu.add_cascade(label="File", menu=submenu)
         self.config(menu=file_menu)
 
@@ -107,7 +110,6 @@ class CargoInterface(ctk.CTk):
 
     def check_page_load(self):
         """Check if the webpage is loaded correctly"""
-
         # Check if starting webpage is loaded correctly. If it's not add a popup.
         if not self.webpage.check_webpage_loaded("//input[@id='UserName']", wait_time=5):
             messagebox.showerror("Webpage Load Error", "The webpage did not load correctly")
@@ -117,7 +119,6 @@ class CargoInterface(ctk.CTk):
     def login_success(self):
         """Check if login was successful. Similar to check_login on webpage_loader class, this is to check if a popup
         is needed if login was unsuccessful"""
-
         # If login was unsuccessful provide popup.
         if not self.webpage.check_login():
             messagebox.showerror("Login Unsuccessful", "The login was unsuccessful")
@@ -140,6 +141,13 @@ class CargoInterface(ctk.CTk):
 
         if loading_waybill_page:
             pass
+
+    def open_settings(self):
+        if self.setting_window is None or not self.setting_window.winfo_exists():
+            self.setting_window = SettingWindow()
+
+        else:
+            self.setting_window.focus()
 
 
 cargo = CargoInterface()
