@@ -14,14 +14,13 @@ USERNAME = os.getenv("USERNAME_1")
 PASSWORD = os.getenv("PASSWORD")
 URL = os.getenv("CARGO_URL")
 
-
 class CargoInterface(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.webpage = CargoWebpage()
         load_dotenv()
         self.title("Cargo Interface")
-        self.geometry("500x350")
+        self.geometry("300x300")
         ctk.set_appearance_mode("System")
         ctk.set_default_color_theme("blue")
         self.resizable(False, False)
@@ -45,12 +44,23 @@ class CargoInterface(ctk.CTk):
         self.tabview.add("Home Delivery")
 
         # SLA/Bot Report - Main Frame
-        self.main_frame = ctk.CTkFrame(self.tabview.tab("SLA/Bot Report"))
+        self.main_frame = ctk.CTkFrame(self.tabview.tab("SLA/Bot Report"), fg_color="transparent")
         self.main_frame.pack(fill="x", pady=(0, 10))
 
         # SLA/Bot Report - Main Layout
-        self.button = ctk.CTkButton(master=self.main_frame, text="Webpage Load", command=self.sla_bot_report_command)
-        self.button.pack()
+        self.main_frame.grid_rowconfigure(0, weight=1)
+        self.main_frame.grid_columnconfigure(0, weight=1)
+
+        self.text_box = ctk.CTkTextbox(master=self.main_frame)
+        self.text_box.grid(row=0, column=0, pady=(10, 15))
+
+        self.button = ctk.CTkButton(master=self.main_frame, text="Webpage Load", width=200,
+                                    command=self.sla_bot_report_command)
+        self.button.grid(row=1, column=0, pady=(0, 10))
+
+        self.checkbox = ctk.CTkCheckBox(master=self.main_frame, text="Hide Text", checkbox_height=20,
+                                        checkbox_width=20, command=self.hide_textbox)
+        self.checkbox.grid(row=2, column=0, pady=(0, 10))
 
 
     def _set_credentials(self):
@@ -105,6 +115,16 @@ class CargoInterface(ctk.CTk):
 
         else:
             self.setting_window.focus()
+
+
+    def hide_textbox(self):
+        checkbox_state = self.checkbox.get()
+        if checkbox_state == 1:
+            self.text_box.grid_remove()
+            self.geometry("250x130")
+        else:
+            self.text_box.grid(row=0, column=0)
+            self.geometry("300x300")
 
 
 cargo = CargoInterface()

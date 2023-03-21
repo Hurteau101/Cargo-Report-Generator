@@ -11,8 +11,7 @@ class SettingWindow(ctk.CTkToplevel):
         self.bind("<FocusIn>", self.on_focus_in)  # Focus in on window once its open.
         self.grab_set()  # Prevent main window from being usable until this window is closed.
         self.title("Settings")
-       # self.maxsize(500, 440)
-        #self.minsize(500, 440)
+        self.resizable(False, False)
 
         # Create Frames
         self.create_main_frame()
