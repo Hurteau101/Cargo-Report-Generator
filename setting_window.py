@@ -1,3 +1,4 @@
+import tkinter
 import customtkinter as ctk
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -6,25 +7,29 @@ from dateutil.relativedelta import relativedelta
 class SettingWindow(ctk.CTkToplevel):
     def __init__(self):
         super().__init__()
-        self.geometry("500x470")
+        self.geometry("500x440")
         self.bind("<FocusIn>", self.on_focus_in)  # Focus in on window once its open.
         self.grab_set()  # Prevent main window from being usable until this window is closed.
         self.title("Settings")
-        self.maxsize(500, 470)
-        self.minsize(500, 470)
+        self.maxsize(500, 440)
+        self.minsize(500, 440)
 
+        # Create Frames
         self.create_main_frame()
         self.create_bot_sla_frame()
         self.create_home_delivery_frame()
-        self.create_bot_sla_widgets(self.bot_sla_frame)
-        self.create_home_delivery_widgets(self.home_frame)
-        self.default_day_value()
-        self.default_from_date_value()
-        self.default_to_date_value()
-        self.default_to_airport_value()
-        self.default_from_airport_value()
-        self.default_top_pri_value()
-        self.default_keyword_value()
+
+        # Create Starting Widgets
+        self.widgets = [
+            {"label_text": "Number of Months Back", "entry_placeholder": "2", "default_value": "2"},
+            {"label_text": "Number of Days Back", "entry_placeholder": "0", "default_value": "0"},
+            {"label_text": "From Airport", "entry_placeholder": "WPG", "default_value": "WPG"},
+            {"label_text": "To Airport", "entry_placeholder": "Please Select", "default_value": "Please Select"},
+        ]
+
+        # Insert Widgets on Setting Window
+        self.insert_widgets(self.bot_sla_frame, self.create_bot_sla_widgets())
+        self.insert_widgets(self.home_frame, self.create_home_delivery_widgets())
 
     def create_main_frame(self):
         """Main Setting Frame"""
@@ -33,123 +38,58 @@ class SettingWindow(ctk.CTkToplevel):
 
     def create_bot_sla_frame(self):
         """Bot/SLA Frame"""
-        self.bot_sla_frame = ctk.CTkFrame(master=self.main_frame, height=400)
+        self.bot_sla_frame = ctk.CTkFrame(master=self.main_frame, height=380)
         self.bot_sla_frame.pack_propagate(False)
         self.bot_sla_frame.pack(side="left", padx=(0, 30), pady=(30, 0))
 
     def create_home_delivery_frame(self):
         """Home Delivery Frame"""
-        self.home_frame = ctk.CTkFrame(master=self.main_frame, height=400)
+        self.home_frame = ctk.CTkFrame(master=self.main_frame, height=380)
         self.home_frame.pack_propagate(False)
         self.home_frame.pack(side="left", pady=(30, 0))
 
-    def create_bot_sla_widgets(self, frame):
-        self.bot_heading_label = ctk.CTkLabel(master=frame, text="Bot/SLA Report Settings", font=("Helvetica", 12,
-                                                                                           "bold", "underline"))
-        self.bot_heading_label.pack()
+    @classmethod
+    def insert_widgets(cls, frame, widget_list):
+        """Insert all the widgets on setting screen"""
+        # Using enumerate to access the first item in the list, as that will be the header text.
+        for index, field in enumerate(widget_list):
+            if index == 0:
+                header_label = ctk.CTkLabel(master=frame, text=field["label_text"], font=("Helvetica", 12,
+                                                                                          "bold", "underline"))
+                header_label.pack()
+            else:
+                label = ctk.CTkLabel(master=frame, text=field["label_text"])
+                label.pack()
 
-        self.days_label = ctk.CTkLabel(master=frame, text="Days")
-        self.days_label.pack()
+                entry = ctk.CTkEntry(master=frame, width=100, justify="center", placeholder_text=field["entry_placeholder"])
+                entry.insert(ctk.END, field["default_value"])
+                entry.pack()
 
-        self.days_box = ctk.CTkEntry(master=frame, width=100, placeholder_text="8", justify="center")
-        self.days_box.pack()
+    def create_bot_sla_widgets(self):
+        """Add necessary widgets to the starting widget list"""
+        sla_fields = [
+            {"label_text": "Bot/SLA Report Settings"},
+            {"label_text": "Days", "entry_placeholder": "8", "default_value": "8"},
+            {"label_text": "Top Priority", "entry_placeholder": "-6", "default_value": "-6"}
+        ]
 
-        self.top_priority_label = ctk.CTkLabel(master=frame, text="Top Priority")
-        self.top_priority_label.pack()
+        return sla_fields + self.widgets
 
-        #TODO: Add placeholder
-        self.top_priority_box = ctk.CTkEntry(master=frame, width=100, placeholder_text="-6", justify="center")
-        self.top_priority_box.pack()
+    def create_home_delivery_widgets(self):
+        """Add necessary widgets to the starting widget list and modify any values needed to be changed"""
+        for widget in self.widgets:
+            if widget['label_text'] == "Number of Months Back":
+                widget["entry_placeholder"] = "0"
+                widget["default_value"] = "0"
+            elif widget["label_text"] == "Number of Days Back":
+                widget["entry_placeholder"] = "2"
+                widget["default_value"] = "2"
 
-        self.from_date_sla_label = ctk.CTkLabel(master=frame, text="From Date")
-        self.from_date_sla_label.pack()
+        # Insert Header Text.
+        self.widgets.insert(0, {"label_text": "Home Delivery Settings"})
+        self.widgets.append({"label_text": "Keyword", "entry_placeholder": "SYSCO", "default_value": "SYSCO"})
 
-        self.from_date_sla_box = ctk.CTkEntry(master=frame, width=100, placeholder_text="20-Nov-2022", justify="center")
-        self.from_date_sla_box.pack()
-
-        self.to_date_sla_label = ctk.CTkLabel(master=frame, text="To Date")
-        self.to_date_sla_label.pack()
-
-        self.to_date_sla_box = ctk.CTkEntry(master=frame, width=100, placeholder_text="20-Jan-2023", justify="center")
-        self.to_date_sla_box.pack()
-
-        self.from_airport_sla_label = ctk.CTkLabel(master=frame, text="From Airport")
-        self.from_airport_sla_label.pack()
-
-        self.from_airport_sla_box = ctk.CTkEntry(master=frame, width=100, placeholder_text="WPG", justify="center")
-        self.from_airport_sla_box.pack()
-
-        self.to_airport_sla_label = ctk.CTkLabel(master=frame, text="To Airport")
-        self.to_airport_sla_label.pack()
-
-        self.to_airport_sla_box = ctk.CTkEntry(master=frame, width=100, placeholder_text="Please Select",
-                                               justify="center")
-        self.to_airport_sla_box.pack()
-
-    def create_home_delivery_widgets(self, frame):
-        self.home_heading_label = ctk.CTkLabel(master=frame, text="Home Delivery Settings", font=("Helvetica", 12,
-                                                                                                  "bold", "underline"))
-        self.home_heading_label.pack()
-
-        self.from_date_label = ctk.CTkLabel(master=frame, text="From Date")
-        self.from_date_label.pack()
-
-        self.from_date_home_box = ctk.CTkEntry(master=frame, width=100, placeholder_text="20-Nov-2022", justify="center")
-        self.from_date_home_box.pack()
-
-        self.to_date_home_label = ctk.CTkLabel(master=frame, text="To Date")
-        self.to_date_home_label.pack()
-
-        self.to_date_home_box = ctk.CTkEntry(master=frame, width=100, placeholder_text="20-Jan-2023", justify="center")
-        self.to_date_home_box.pack()
-
-        self.from_airport_home_label = ctk.CTkLabel(master=frame, text="From Airport")
-        self.from_airport_home_label.pack()
-
-        self.from_airport_home_box = ctk.CTkEntry(master=frame, width=100, placeholder_text="WPG", justify="center")
-        self.from_airport_home_box.pack()
-
-        self.to_airport_home_label = ctk.CTkLabel(master=frame, text="To Airport")
-        self.to_airport_home_label.pack()
-
-        self.to_airport_home_box = ctk.CTkEntry(master=frame, width=100, placeholder_text="Please Select",
-                                                justify="center")
-        self.to_airport_home_box.pack()
-
-        self.keyword_label = ctk.CTkLabel(master=frame, text="Keyword")
-        self.keyword_label.pack()
-
-        self.keyword_box = ctk.CTkEntry(master=frame, width=100, placeholder_text="SYSCO", justify="center")
-        self.keyword_box.pack()
-
-    def default_day_value(self):
-        self.days_box.insert(ctk.END, "8")
-
-
-    def default_from_date_value(self):
-        """Set default date. The default date is set 2 months from current date"""
-        default_date = datetime.today().date() - relativedelta(months=2)
-        self.from_date_home_box.insert(ctk.END, default_date.strftime("%d-%b-%Y"))
-        self.from_date_sla_box.insert(ctk.END, default_date.strftime("%d-%b-%Y"))
-
-    def default_to_date_value(self):
-        default_date = datetime.today().date()
-        self.to_date_home_box.insert(ctk.END, default_date.strftime("%d-%b-%Y"))
-        self.to_date_sla_box.insert(ctk.END, default_date.strftime("%d-%b-%Y"))
-
-    def default_to_airport_value(self):
-        self.to_airport_home_box.insert(ctk.END, "Please Select")
-        self.to_airport_sla_box.insert(ctk.END, "Please Select")
-
-    def default_from_airport_value(self):
-        self.from_airport_sla_box.insert(ctk.END, "WPG")
-        self.from_airport_home_box.insert(ctk.END, "WPG")
-
-    def default_top_pri_value(self):
-        self.top_priority_box.insert(ctk.END, "-6")
-
-    def default_keyword_value(self):
-        self.keyword_box.insert(ctk.END, "SYSCO")
+        return self.widgets
 
     def on_focus_in(self, event):
         """Bring setting window to the front when opened"""
