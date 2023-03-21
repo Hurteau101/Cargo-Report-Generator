@@ -7,15 +7,16 @@ from dateutil.relativedelta import relativedelta
 class SettingWindow(ctk.CTkToplevel):
     def __init__(self):
         super().__init__()
-        self.geometry("500x440")
+        self.geometry("490x470")
         self.bind("<FocusIn>", self.on_focus_in)  # Focus in on window once its open.
         self.grab_set()  # Prevent main window from being usable until this window is closed.
         self.title("Settings")
-        self.maxsize(500, 440)
-        self.minsize(500, 440)
+       # self.maxsize(500, 440)
+        #self.minsize(500, 440)
 
         # Create Frames
         self.create_main_frame()
+        self.create_save_button()
         self.create_bot_sla_frame()
         self.create_home_delivery_frame()
 
@@ -31,6 +32,7 @@ class SettingWindow(ctk.CTkToplevel):
         self.insert_widgets(self.bot_sla_frame, self.create_bot_sla_widgets())
         self.insert_widgets(self.home_frame, self.create_home_delivery_widgets())
 
+
     def create_main_frame(self):
         """Main Setting Frame"""
         self.main_frame = ctk.CTkFrame(master=self, fg_color="transparent")
@@ -40,13 +42,22 @@ class SettingWindow(ctk.CTkToplevel):
         """Bot/SLA Frame"""
         self.bot_sla_frame = ctk.CTkFrame(master=self.main_frame, height=380)
         self.bot_sla_frame.pack_propagate(False)
-        self.bot_sla_frame.pack(side="left", padx=(0, 30), pady=(30, 0))
+        self.bot_sla_frame.pack(side="left", padx=(0, 30), pady=(20, 0))
 
     def create_home_delivery_frame(self):
         """Home Delivery Frame"""
         self.home_frame = ctk.CTkFrame(master=self.main_frame, height=380)
         self.home_frame.pack_propagate(False)
-        self.home_frame.pack(side="left", pady=(30, 0))
+        self.home_frame.pack(side="left", pady=(20, 0))
+
+    def create_save_button(self):
+        """Save Button"""
+        save_button_frame = ctk.CTkFrame(master=self.main_frame, fg_color="transparent")
+        save_button_frame.pack(side="bottom")
+
+        self.save_button = ctk.CTkButton(master=save_button_frame, text="Save Settings", width=430)
+        self.save_button.pack(pady="20")
+
 
     @classmethod
     def insert_widgets(cls, frame, widget_list):
