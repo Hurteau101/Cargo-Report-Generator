@@ -71,19 +71,23 @@ class CargoInterface(ctk.CTk):
                                                                                          "bold", "underline"))
         self.option_label.pack()
 
-        self.hide_text_cb = ctk.CTkCheckBox(master=self.option_frame, text="Hide Text", command=self.hide_textbox)
-        self.hide_text_cb.pack(pady="5")
+        self.hide_text_var = ctk.StringVar(value="off")
+        self.hide_text_switch = ctk.CTkSwitch(master=self.option_frame, text="Hide Textbox",
+                                          command=self.hide_textbox, variable=self.hide_text_var, onvalue="on",
+                                          offvalue="off")
+        self.hide_text_switch.pack()
 
-        self.script_running = ctk.StringVar(value="off")
-
-        self.script_switch = ctk.CTkSwitch(master=self.option_frame, text="Script Running",
-                                           command=self.stop_script_command, variable=self.script_running, onvalue="on",
+        self.script_running_var = ctk.StringVar(value="off")
+        self.script_switch = ctk.CTkSwitch(master=self.option_frame, text="Script Off",
+                                           command=self.stop_script_command, variable=self.script_running_var,
+                                           onvalue="on",
                                            offvalue="off", state=ctk.DISABLED)
         self.script_switch.pack()
 
     def stop_script(self):
-        """Stop selenium script, set swtich to off and disable switch"""
-        self.set_script_switch("false")
+        """Stop selenium script"""
+        self.set_switch(status=False, switch_widget=self.script_switch, switch_str_var=self.script_running_var,
+                        disable_widget=True, switch_text="Script Not Running")
         self.webpage.quit_selenium()
 
     def stop_script_command(self):
@@ -91,18 +95,47 @@ class CargoInterface(ctk.CTk):
         thread = threading.Thread(target=self.stop_script)
         thread.start()
 
-    def set_script_switch(self, script_on: bool):
-        """Set Script Switch Widget to on or off. True = on | False = off"""
-        if not isinstance(script_on, bool):
-            self.webpage.quit_selenium()
-            raise TypeError(f"Expected 'script_on' to be of type 'bool' but got '{type(script_on)}' instead")
+    @classmethod
+    def type_check(cls, arg, arg_name: str, expected_type: type):
+        """Check the type of argument. Raise an error, if the argument is not what is expected"""
+        if not isinstance(arg, expected_type):
+            raise TypeError(f"Expected '{arg_name}' to be of type '{expected_type.__name__}' "
+                            f"but got '{type(arg).__name__}' instead")
 
-        if script_on:
-            self.script_running = ctk.StringVar(value="on")
-            self.script_switch.configure(state=ctk.NORMAL, variable=self.script_running)
+    def set_switch(self, status: bool, switch_widget: ctk.CTkSwitch, switch_str_var: ctk.StringVar, **kwargs):
+        """
+           Set switch widget to on or off.
+
+           Args:
+               status (bool): The status of the switch (on or off).
+               switch_widget (ctk.CTkSwitch): The switch widget to set.
+               switch_str_var(ctk.StringVar): The StringVar that handles the values of the on/off switch.
+               **kwargs: Additional keyword arguments that can be passed to the function.
+
+           Keyword Args:
+               disable_widget (bool): Whether to disable the switch widget (default: None).
+               switch_text (str): The text to display on the switch widget (default: None).
+           """
+        self.type_check(arg=status, arg_name="status", expected_type=bool)
+        self.type_check(arg=switch_widget, arg_name="switch_widget", expected_type=ctk.CTkSwitch)
+
+        disable_widget = kwargs.get("disable_widget", None)
+        switch_text = kwargs.get("switch_text", None)
+
+        if disable_widget is not None:
+            self.type_check(arg=disable_widget, arg_name="disable_widget", expected_type=bool)
+            if disable_widget:
+                switch_widget.configure(state=ctk.DISABLED)
+            else:
+                switch_widget.configure(state=ctk.NORMAL)
+
+        if switch_text is not None:
+            switch_widget.configure(text=switch_text)
+
+        if status:
+            switch_str_var.set(value="on")
         else:
-            self.script_running = ctk.StringVar(value="off")
-            self.script_switch.configure(state=ctk.DISABLED, variable=self.script_running)
+            switch_str_var.set(value="off")
 
     def sla_bot_report_command(self):
         """Create new thread for starting webscraper"""
@@ -110,9 +143,8 @@ class CargoInterface(ctk.CTk):
         thread.start()
 
     def sla_bot_report_click(self):
-        # Set switch value to on and enable switch.
-        self.set_script_switch(True)
-
+        self.set_switch(status=True, switch_widget=self.script_switch, switch_str_var=self.script_running_var,
+                        disable_widget=False, switch_text="Script Running")
         self.start_selenium()
         self._set_credentials()
 
@@ -133,8 +165,7 @@ class CargoInterface(ctk.CTk):
             self.setting_window.focus()
 
     def hide_textbox(self):
-        checkbox_state = self.hide_text_cb.get()
-        if checkbox_state == 1:
+        if self.hide_text_switch.get() == "on":
             self.textbox.pack_forget()
         else:
             self.webpage_btn.pack_forget()
