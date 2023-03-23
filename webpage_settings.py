@@ -3,6 +3,7 @@ import os
 
 
 class WebpageSettings:
+    # TODO: Add unlimited keyword arguments for this
     @classmethod
     def headless_chrome(cls):
         """Returns Selenium Chrome in Headless Mode along with a few other settings to help with headless mode"""
@@ -20,6 +21,3 @@ class WebpageSettings:
             "download.prompt_for_download": False,
         })
         return options
-
-
-

@@ -1,7 +1,4 @@
-import tkinter
 import customtkinter as ctk
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
 
 
 class SettingWindow(ctk.CTkToplevel):
@@ -57,7 +54,6 @@ class SettingWindow(ctk.CTkToplevel):
         self.save_button = ctk.CTkButton(master=save_button_frame, text="Save Settings", width=430)
         self.save_button.pack(pady="20")
 
-
     @classmethod
     def insert_widgets(cls, frame, widget_list):
         """Insert all the widgets on setting screen"""
@@ -80,7 +76,6 @@ class SettingWindow(ctk.CTkToplevel):
         sla_fields = [
             {"label_text": "Bot/SLA Report Settings"},
             {"label_text": "Days", "entry_placeholder": "8", "default_value": "8"},
-            {"label_text": "Top Priority", "entry_placeholder": "-6", "default_value": "-6"}
         ]
 
         return sla_fields + self.widgets

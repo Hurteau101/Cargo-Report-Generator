@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from datetime import date
 import time
+from utils import type_check
 
 
 class CargoWebpage:
@@ -35,8 +36,11 @@ class CargoWebpage:
         self.driver.get(url)
 
     def start_selenium(self, options=None):
-        """Use method to start Selenium Webdriver. Use WebpageSettings.headless_chrome as argument to set Selenium to
-        headless mode"""
+        """Use method to start Selenium Webdriver.
+
+        :param options: The options will put Selenium into headless mode.
+        Valid option is WebpageSettings.headless_chrome
+        """
         service = Service("chromedriver.exe")
         self.driver = webdriver.Chrome(service=service, options=options)
 
@@ -51,7 +55,13 @@ class CargoWebpage:
 
     def check_webpage_loaded(self, element: str, wait_time: int):
         """Check if a webpage is loaded or not.
-        Pass in the XPATH string, the wait time length and an optional error message"""
+
+        :param element: The XPATH of the element.
+        :param wait_time: The length of time you want to wait for the element to appear. Make sure it's an integer
+        """
+        type_check(arg=element, arg_name="element", expected_type=str)
+        type_check(arg=wait_time, arg_name="wait_time", expected_type=int)
+
         try:
             WebDriverWait(self.driver, wait_time).until(EC.visibility_of_element_located((By.XPATH, element)))
         except TimeoutException:
@@ -77,8 +87,8 @@ class CargoWebpage:
         login_button = self.driver.find_element(By.XPATH, "//button[@id='load2']")
         login_button.click()
 
-    def waybills_to_ship_page(self):
-        self.load_url("https://cargo.perimeter.ca/webmaster/reports/GeneralReport/Default?report_id=75")
+    def waybills_to_ship_page(self, url):
+        self.load_url(url)
         if self.check_webpage_loaded("//input[@id='txt_from_date75']", wait_time=5):
             return True
         return False

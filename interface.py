@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from Settings_Data import SettingsData
 from webpage_loader import CargoWebpage
 from dotenv import load_dotenv
 import os
@@ -6,12 +7,14 @@ import tkinter as tk
 import tkinter.messagebox as messagebox
 import threading
 from setting_window import SettingWindow
+from utils import type_check
 
 # Loading the environment variables into constants.
 load_dotenv()
 USERNAME = os.getenv("USERNAME_1")
 PASSWORD = os.getenv("PASSWORD")
-URL = os.getenv("CARGO_URL")
+CARGO_HOMEPAGE = os.getenv("CARGO_HOMEPAGE")
+WAYBILLS_REPORT_URL = os.getenv("WAYBILLS_REPORT_URL")
 
 
 class CargoInterface(ctk.CTk):
@@ -73,8 +76,8 @@ class CargoInterface(ctk.CTk):
 
         self.hide_text_var = ctk.StringVar(value="off")
         self.hide_text_switch = ctk.CTkSwitch(master=self.option_frame, text="Hide Textbox",
-                                          command=self.hide_textbox, variable=self.hide_text_var, onvalue="on",
-                                          offvalue="off")
+                                              command=self.hide_textbox, variable=self.hide_text_var, onvalue="on",
+                                              offvalue="off")
         self.hide_text_switch.pack()
 
         self.script_running_var = ctk.StringVar(value="off")
@@ -96,13 +99,7 @@ class CargoInterface(ctk.CTk):
         thread.start()
 
     @classmethod
-    def type_check(cls, arg, arg_name: str, expected_type: type):
-        """Check the type of argument. Raise an error, if the argument is not what is expected"""
-        if not isinstance(arg, expected_type):
-            raise TypeError(f"Expected '{arg_name}' to be of type '{expected_type.__name__}' "
-                            f"but got '{type(arg).__name__}' instead")
-
-    def set_switch(self, status: bool, switch_widget: ctk.CTkSwitch, switch_str_var: ctk.StringVar, **kwargs):
+    def set_switch(cls, status: bool, switch_widget: ctk.CTkSwitch, switch_str_var: ctk.StringVar, **kwargs):
         """
            Set switch widget to on or off.
 
@@ -116,14 +113,14 @@ class CargoInterface(ctk.CTk):
                disable_widget (bool): Whether to disable the switch widget (default: None).
                switch_text (str): The text to display on the switch widget (default: None).
            """
-        self.type_check(arg=status, arg_name="status", expected_type=bool)
-        self.type_check(arg=switch_widget, arg_name="switch_widget", expected_type=ctk.CTkSwitch)
+        type_check(arg=status, arg_name="status", expected_type=bool)
+        type_check(arg=switch_widget, arg_name="switch_widget", expected_type=ctk.CTkSwitch)
 
         disable_widget = kwargs.get("disable_widget", None)
         switch_text = kwargs.get("switch_text", None)
 
         if disable_widget is not None:
-            self.type_check(arg=disable_widget, arg_name="disable_widget", expected_type=bool)
+            type_check(arg=disable_widget, arg_name="disable_widget", expected_type=bool)
             if disable_widget:
                 switch_widget.configure(state=ctk.DISABLED)
             else:
@@ -152,12 +149,13 @@ class CargoInterface(ctk.CTk):
         loading_waybill_page = all((self.check_page_load(),
                                     self.webpage.login(),
                                     self.login_success(),
-                                    self.webpage.waybills_to_ship_page()))
+                                    self.webpage.waybills_to_ship_page(WAYBILLS_REPORT_URL)))
 
         if loading_waybill_page:
             pass
 
     def open_settings(self):
+        """Open Setting Window"""
         if self.setting_window is None or not self.setting_window.winfo_exists():
             self.setting_window = SettingWindow()
 
@@ -178,11 +176,11 @@ class CargoInterface(ctk.CTk):
 
     def start_selenium(self):
         self.webpage.start_selenium()
-        self.webpage.load_url(URL)
+        self.webpage.load_url(CARGO_HOMEPAGE)
 
     @classmethod
     def display_error(cls, title, message):
-        messagebox.showerror(cls, message)
+        messagebox.showerror(title, message)
 
     def check_page_load(self):
         """Check if the webpage is loaded correctly"""
