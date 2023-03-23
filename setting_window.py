@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from Settings_Data import SettingsData
 
 
 class SettingWindow(ctk.CTkToplevel):
@@ -10,24 +11,20 @@ class SettingWindow(ctk.CTkToplevel):
         self.title("Settings")
         self.resizable(False, False)
 
+        # Get Settings Data
+        self.setting_data = SettingsData()
+        self.bot_sla_data = self.setting_data.get_bot_sla_data()
+        self.home_data = self.setting_data.get_home_delivery_data()
+
         # Create Frames
         self.create_main_frame()
         self.create_save_button()
         self.create_bot_sla_frame()
         self.create_home_delivery_frame()
 
-        # Create Starting Widgets
-        self.widgets = [
-            {"label_text": "Number of Months Back", "entry_placeholder": "2", "default_value": "2"},
-            {"label_text": "Number of Days Back", "entry_placeholder": "0", "default_value": "0"},
-            {"label_text": "From Airport", "entry_placeholder": "WPG", "default_value": "WPG"},
-            {"label_text": "To Airport", "entry_placeholder": "Please Select", "default_value": "Please Select"},
-        ]
-
-        # Insert Widgets on Setting Window
-        self.insert_widgets(self.bot_sla_frame, self.create_bot_sla_widgets())
-        self.insert_widgets(self.home_frame, self.create_home_delivery_widgets())
-
+        # # Insert Widgets on Setting Window
+        self.create_widgets(self.bot_sla_frame, self.sla_bot_widgets_data())
+        self.create_widgets(self.home_frame, self.home_widgets_data())
 
     def create_main_frame(self):
         """Main Setting Frame"""
@@ -55,10 +52,58 @@ class SettingWindow(ctk.CTkToplevel):
         self.save_button.pack(pady="20")
 
     @classmethod
-    def insert_widgets(cls, frame, widget_list):
+    def common_widgets_data(cls):
+        widgets_data = [
+            {"label_text": "Number of Months Back", "entry_placeholder": "2", "setting_key": "NumOfMonths"},
+            {"label_text": "Number of Days Back", "entry_placeholder": "0", "setting_key": "NumOfDays"},
+            {"label_text": "From Airport", "entry_placeholder": "WPG", "setting_key": "FromAirport"},
+            {"label_text": "To Airport", "entry_placeholder": "Please Select", "setting_key": "ToAirport"},
+        ]
+
+        return widgets_data
+
+    def sla_bot_widgets_data(self):
+        """Set the SLA/Bot Report Setting Widget Data"""
+        sla_widget_data = [
+            {"label_text": "Bot/SLA Report Settings"},
+            {"label_text": "Days", "entry_placeholder": "8", "setting_key": "DayAmount"},
+        ]
+
+        new_sla_widgets = sla_widget_data + self.common_widgets_data()
+        self.insert_database_settings(widget_data=new_sla_widgets, setting_group=self.bot_sla_data)
+
+        return new_sla_widgets
+
+    def home_widgets_data(self):
+        """Set the Home Delivery Report Setting Widget Data"""
+        home_widget_data = [
+            {"label_text": "Home Delivery Settings"},
+            {"label_text": "Keyword", "entry_placeholder": "SYSCO", "setting_key": "Keyword"},
+        ]
+
+        new_home_widgets = home_widget_data + self.common_widgets_data()
+        self.insert_database_settings(widget_data=new_home_widgets, setting_group=self.home_data)
+
+        return new_home_widgets
+
+    def insert_database_settings(self, widget_data, setting_group):
+        """Insert the settings that were retrieved from the database.
+            :param widget_data: Dictionary list of widgets
+            :param setting_group: Select which setting dictionary to load. Valid values are:
+                              bot_report_settings and
+                              home_delivery_settings
+        """
+        # Enumerate to avoid access the first element in list, as that is header text.
+        for index, data in enumerate(widget_data):
+            if index != 0:
+                data.update({"setting_key": self.load_setting(setting_group=setting_group,
+                                                              setting_name=data["setting_key"])})
+
+    @classmethod
+    def create_widgets(cls, frame, widget_data):
         """Insert all the widgets on setting screen"""
         # Using enumerate to access the first item in the list, as that will be the header text.
-        for index, field in enumerate(widget_list):
+        for index, field in enumerate(widget_data):
             if index == 0:
                 header_label = ctk.CTkLabel(master=frame, text=field["label_text"], font=("Helvetica", 12,
                                                                                           "bold", "underline"))
@@ -67,34 +112,35 @@ class SettingWindow(ctk.CTkToplevel):
                 label = ctk.CTkLabel(master=frame, text=field["label_text"])
                 label.pack()
 
-                entry = ctk.CTkEntry(master=frame, width=100, justify="center", placeholder_text=field["entry_placeholder"])
-                entry.insert(ctk.END, field["default_value"])
+                entry = ctk.CTkEntry(master=frame, width=100, justify="center",
+                                     placeholder_text=field["entry_placeholder"])
+                entry.insert(ctk.END, field["setting_key"])
                 entry.pack()
 
-    def create_bot_sla_widgets(self):
-        """Add necessary widgets to the starting widget list"""
-        sla_fields = [
-            {"label_text": "Bot/SLA Report Settings"},
-            {"label_text": "Days", "entry_placeholder": "8", "default_value": "8"},
-        ]
+    @classmethod
+    def load_setting(cls, setting_group: dict, setting_name: str):
+        """
+        Load the specified setting.
 
-        return sla_fields + self.widgets
-
-    def create_home_delivery_widgets(self):
-        """Add necessary widgets to the starting widget list and modify any values needed to be changed"""
-        for widget in self.widgets:
-            if widget['label_text'] == "Number of Months Back":
-                widget["entry_placeholder"] = "0"
-                widget["default_value"] = "0"
-            elif widget["label_text"] == "Number of Days Back":
-                widget["entry_placeholder"] = "2"
-                widget["default_value"] = "2"
-
-        # Insert Header Text.
-        self.widgets.insert(0, {"label_text": "Home Delivery Settings"})
-        self.widgets.append({"label_text": "Keyword", "entry_placeholder": "SYSCO", "default_value": "SYSCO"})
-
-        return self.widgets
+        :param setting_group: Select which setting dictionary to load. Valid values are:
+                              bot_report_settings and
+                              home_delivery_settings
+        :param setting_name: Load the values of the specified settings.
+                             If setting_group is bot_report_settings, valid values are:
+                              DayAmount,
+                              NumOfMonths,
+                              NumOfDays,
+                              FromAirport,
+                              ToAirport
+                             If setting_group is home_delivery_settings, valid values are:
+                              NumOfMonths,
+                              NumOfDays,
+                              FromAirport,
+                              ToAirport,
+                              Keywords
+        :return: Returns the value for the specified setting name.
+        """
+        return setting_group[setting_name]
 
     def on_focus_in(self, event):
         """Bring setting window to the front when opened"""
