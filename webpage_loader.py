@@ -32,7 +32,7 @@ class CargoWebpage:
         self.driver = None
 
     @property
-    def username(self):
+    def username(self) -> str:
         """
         Get the username
         :return: Returns the username.
@@ -40,7 +40,7 @@ class CargoWebpage:
         return self._username
 
     @username.setter
-    def username(self, username):
+    def username(self, username: str):
         """
         Set username
         :param username: The username for the cargo webpage.
@@ -49,7 +49,7 @@ class CargoWebpage:
         self._username = username
 
     @property
-    def password(self):
+    def password(self) -> str:
         """
         Get the password
         :return: Returns the password
@@ -57,7 +57,7 @@ class CargoWebpage:
         return self._password
 
     @password.setter
-    def password(self, password):
+    def password(self, password: str):
         """
         Set password
         :param password:  The password for the cargo webpage.
@@ -65,7 +65,7 @@ class CargoWebpage:
         """
         self._password = password
 
-    def load_url(self, url):
+    def load_url(self, url: str):
         """
         Loads the specified url.
         :param url: The URL of the webpage you want to load.
@@ -73,12 +73,12 @@ class CargoWebpage:
         """
         self.driver.get(url)
 
-    def start_selenium(self, options=None):
+    def start_selenium(self, options: webdriver.ChromeOptions = None):
         """
         Starts Selenium Webdriver.
 
         :param options: The options will put Selenium into headless mode.
-        Valid option is WebpageSettings.headless_chrome
+        Valid option is WebpageSettings.headless_chrome. (ex. options = WebpageSettings.headless_chrome())
         """
         service = Service("chromedriver.exe")
         self.driver = webdriver.Chrome(service=service, options=options)
@@ -97,13 +97,13 @@ class CargoWebpage:
         If either the username or password have not been set, this method raises a ValueError exception and
         quits the Selenium driver.
 
-        :return:
+        :return: None
         """
         if self._password is None or self._username is None:
             self.quit_selenium()
             raise ValueError("Username and Password must be set before attempting to login.")
 
-    def check_webpage_loaded(self, element: str, wait_time: int):
+    def check_webpage_loaded(self, element: str, wait_time: int) -> bool:
         """Check if a webpage is loaded or not.
 
         This method checks to see if a webpage is loaded correctly. It does this by checking if it can find the
@@ -126,7 +126,7 @@ class CargoWebpage:
 
         return True
 
-    def check_login(self):
+    def check_login(self) -> bool:
         """
         Checks to see if the user has successfully signed in to the webpage on the script.
 
@@ -163,7 +163,7 @@ class CargoWebpage:
         login_button.click()
 
     # TODO: Add docstring when method is finished.
-    def waybills_to_ship_page(self, url):
+    def waybills_to_ship_page(self, url: str) -> bool:
         self.load_url(url)
         if self.check_webpage_loaded("//input[@id='txt_from_date75']", wait_time=5):
             return True

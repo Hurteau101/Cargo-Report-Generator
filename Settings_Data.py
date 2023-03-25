@@ -22,7 +22,7 @@ class SettingsData:
         # This method creates a new instance of the DatabaseConnector class and assigns it to the `connector` attribute.
         self.connector = DatabaseConnector()
 
-    def get_bot_sla_data(self):
+    def get_bot_sla_data(self) -> dict:
         """
         Gets all the values from the Bot/SLA table in the database.
         This method gets all the values from the SLA/Bot table in the database. The values are all the previously
@@ -33,7 +33,7 @@ class SettingsData:
         """
         return self.get_setting_data(self.BOT_SLA_REPORT_TABLE_NAME)
 
-    def get_home_delivery_data(self):
+    def get_home_delivery_data(self) -> dict:
         """
        Gets all the values from the Home Delivery table in the database.
        This method gets all the values from the Home Delivery table in the database. The values are all the previously
@@ -44,7 +44,7 @@ class SettingsData:
        """
         return self.get_setting_data(self.HOME_REPORT_TABLE_NAME)
 
-    def get_setting_data(self, table_name: str):
+    def get_setting_data(self, table_name: str) -> dict:
         """
         Gets all the specified table data and returns the table data as a dictionary
         This method accepted a table_name as an argument which will then look into the database for that table. It will
@@ -55,6 +55,7 @@ class SettingsData:
 
         :param table_name: The name of the table to retrieve data from. Valid values are
         "BotReportSettings and HomeReportSettings
+        :return Returns a dictionary of values for the specified table.
         """
         type_check(arg=table_name, arg_name="table_name", expected_type=str)
 

@@ -223,7 +223,7 @@ class SettingWindow(ctk.CTkToplevel):
 
         return widgets_data
 
-    def sla_bot_widgets_data(self):
+    def sla_bot_widgets_data(self) -> list:
         """
         Stores the widget data for widgets only in the SLA/Bot Settings.
         This method will store widget data for SLA/Bot Settings. It will store the label text, entry_placeholder
@@ -246,7 +246,7 @@ class SettingWindow(ctk.CTkToplevel):
 
         return new_sla_widgets
 
-    def home_widgets_data(self):
+    def home_widgets_data(self) -> list:
         """
         Stores the widget data for widgets only in the Home Delivery Settings.
         This method will store widget data for Home Delivery Settings. It will store the label text, entry_placeholder
@@ -269,7 +269,7 @@ class SettingWindow(ctk.CTkToplevel):
 
         return new_home_widgets
 
-    def insert_database_settings(self, widget_data, setting_group):
+    def insert_database_settings(self, widget_data: list, setting_group: dict):
         """
         Insert the settings that were retrieved from the database.
 
@@ -298,7 +298,7 @@ class SettingWindow(ctk.CTkToplevel):
                                                               setting_name=data["setting_key"])})
 
     @classmethod
-    def create_widgets(cls, frame, widget_data: list):
+    def create_widgets(cls, frame: ctk.CTkFrame, widget_data: list) -> dict:
         """
         Create all the widgets that were passed in and display them on the Setting Window.
 
@@ -342,7 +342,7 @@ class SettingWindow(ctk.CTkToplevel):
         return widget_list
 
     @classmethod
-    def load_setting(cls, setting_group: dict, setting_name: str):
+    def load_setting(cls, setting_group: dict, setting_name: str) -> str:
         """
         Loads the specified setting.
 
@@ -413,7 +413,7 @@ class SettingWindow(ctk.CTkToplevel):
                                           NumOfMonths=int(num_of_months), NumOfDays=int(num_of_days),
                                           FromAirport=from_airport, ToAirport=to_airport)
 
-    def get_entry_box_values(self, widget_group):
+    def get_entry_box_values(self, widget_group: str) -> dict:
         """
         Get the current entry box values.
         This method will get all the values in the entry box that is associated with the widget group. There should

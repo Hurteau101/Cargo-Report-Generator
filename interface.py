@@ -197,8 +197,8 @@ class CargoInterface(ctk.CTk):
                                     self.login_success(),
                                     self.webpage.waybills_to_ship_page(WAYBILLS_REPORT_URL)))
 
-        if loading_waybill_page:
-            pass
+        # if loading_waybill_page:
+        #     pass
 
     def open_settings(self):
         """
@@ -263,7 +263,7 @@ class CargoInterface(ctk.CTk):
         self.webpage.load_url(CARGO_HOMEPAGE)
 
     @classmethod
-    def display_error(cls, title, message):
+    def display_error(cls, title: str, message: str):
         """
         This will display a pop-up message to the user.
 
@@ -275,7 +275,7 @@ class CargoInterface(ctk.CTk):
         """
         messagebox.showerror(title, message)
 
-    def check_page_load(self):
+    def check_page_load(self) -> bool:
         """
         Checks if a webpage is loaded correctly.
 
@@ -292,7 +292,7 @@ class CargoInterface(ctk.CTk):
             return False
         return True
 
-    def login_success(self):
+    def login_success(self) -> bool:
         """
         Check if the script successfully logged in.
 

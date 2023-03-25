@@ -25,7 +25,7 @@ class DatabaseConnector:
         self.connection = None
 
     @property
-    def connection_string(self):
+    def connection_string(self) -> str:
         """Return the connection string for SQL Server.
 
         Returns:

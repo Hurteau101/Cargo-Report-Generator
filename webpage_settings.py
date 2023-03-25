@@ -6,7 +6,7 @@ class WebpageSettings:
     """A collection of commonly used settings for Selenium webdrivers."""
     # TODO: Add unlimited keyword arguments for this
     @classmethod
-    def headless_chrome(cls):
+    def headless_chrome(cls) -> webdriver.ChromeOptions:
         """Returns a set of options for running Chrome in headless mode.
 
               The returned options include a user-agent string, log level settings, SSL certificate and error
@@ -14,7 +14,7 @@ class WebpageSettings:
               prompting the user.
 
               :return: An instance of the ChromeOptions class with the specified settings.
-              :rtype: webdriver.ChromeOptions
+
         """
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
