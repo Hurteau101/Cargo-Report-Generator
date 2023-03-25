@@ -8,6 +8,7 @@ from selenium.webdriver.support.ui import Select
 from datetime import date
 import time
 from utils import type_check
+from webpage_data import WebpageData
 
 
 class CargoWebpage:
@@ -27,43 +28,9 @@ class CargoWebpage:
         - check_login(): Check if the user is logged into the Cargo webpage.
     """
     def __init__(self):
-        self._username = None
-        self._password = None
         self.driver = None
-
-    @property
-    def username(self) -> str:
-        """
-        Get the username
-        :return: Returns the username.
-        """
-        return self._username
-
-    @username.setter
-    def username(self, username: str):
-        """
-        Set username
-        :param username: The username for the cargo webpage.
-        :return: None
-        """
-        self._username = username
-
-    @property
-    def password(self) -> str:
-        """
-        Get the password
-        :return: Returns the password
-        """
-        return self._password
-
-    @password.setter
-    def password(self, password: str):
-        """
-        Set password
-        :param password:  The password for the cargo webpage.
-        :return: None
-        """
-        self._password = password
+        self.waybill_data = None
+        self.webpage_data = WebpageData()
 
     def load_url(self, url: str):
         """
@@ -89,19 +56,6 @@ class CargoWebpage:
         :return: None.
         """
         self.driver.quit()
-
-    def _validate_credentials(self):
-        """
-        Checks to see if the username and password have been set for this instance of the CargoWebpage class.
-
-        If either the username or password have not been set, this method raises a ValueError exception and
-        quits the Selenium driver.
-
-        :return: None
-        """
-        if self._password is None or self._username is None:
-            self.quit_selenium()
-            raise ValueError("Username and Password must be set before attempting to login.")
 
     def check_webpage_loaded(self, element: str, wait_time: int) -> bool:
         """Check if a webpage is loaded or not.
@@ -146,20 +100,18 @@ class CargoWebpage:
         Allows the script to log in to the Cargo Webpage.
 
         The method allows the script to get the XPATH for the username and password fields. It then inputs the username
-        and password attributes and sends the keys to the webpage, which allows it to login.
+        and password attributes and sends the keys to the webpage, which allows it to login. It gets the username
+        and password from the WebpageData class.
 
         :return: None
         """
-        """Login into the webpage"""
-        self._validate_credentials()
         username_field = self.driver.find_element(By.XPATH, "//input[@id='UserName']")
-        username_field.send_keys(self.username)
+        username_field.send_keys(self.webpage_data.get_username())
 
         password_field = self.driver.find_element(By.XPATH, "//input[@id='pwd']")
-        password_field.send_keys(self.password)
+        password_field.send_keys(self.webpage_data.get_password())
 
         login_button = self.driver.find_element(By.XPATH, "//button[@id='load2']")
-        self.today_date()
         login_button.click()
 
     # TODO: Add docstring when method is finished.
@@ -169,23 +121,15 @@ class CargoWebpage:
             return True
         return False
 
-    @classmethod
-    def today_date(cls):
-        """
-        Get today's date.
-        The method gets today's date and formats the date into a string. The reformatted date looks like: 24-Mar-2023
-        :return: Returns the current day but reformatted into a string. (Ex. 24-Mar-2023)
-        """
-        today = date.today()
-        return today.strftime("%d-%b-%Y")
 
     # TODO: Add docstring when method is finished.
-    def waybills_data(self, from_date: str):
+    def waybills_data(self, waybill_data: dict):
         from_date_field = self.driver.find_element(By.XPATH, "//input[@id='txt_from_date75']")
         from_airport_field = self.driver.find_element(By.XPATH, "/html/body/div[7]/form/div/div[1]/div/div/div/div["
                                                                 "4]/div/div[2]/div/select")
         to_airport_field = self.driver.find_element(By.XPATH, "/html/body/div[7]/form/div/div[1]/div/div/div/div["
                                                               "5]/div/div[2]/div/select")
+
 
 
 

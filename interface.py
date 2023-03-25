@@ -1,5 +1,4 @@
 import customtkinter as ctk
-from Settings_Data import SettingsData
 from webpage_loader import CargoWebpage
 from dotenv import load_dotenv
 import os
@@ -8,13 +7,7 @@ import tkinter.messagebox as messagebox
 import threading
 from setting_window import SettingWindow
 from utils import type_check
-
-# Loading the environment variables into constants.
-load_dotenv()
-USERNAME = os.getenv("USERNAME_1")
-PASSWORD = os.getenv("PASSWORD")
-CARGO_HOMEPAGE = os.getenv("CARGO_HOMEPAGE")
-WAYBILLS_REPORT_URL = os.getenv("WAYBILLS_REPORT_URL")
+from webpage_data import WebpageData
 
 
 class CargoInterface(ctk.CTk):
@@ -41,7 +34,10 @@ class CargoInterface(ctk.CTk):
         ctk.set_appearance_mode("System")
         ctk.set_default_color_theme("blue")
         self.resizable(False, False)
+
         self.setting_window = None
+
+        self.webpage_data = WebpageData()
 
         # Main Frame Layout
         self.main_frame = ctk.CTkFrame(master=self)
@@ -100,35 +96,6 @@ class CargoInterface(ctk.CTk):
                                            offvalue="off", state=ctk.DISABLED)
         self.script_switch.pack()
 
-    def stop_script(self):
-        """
-        Stops the selenium script.
-
-        This method sets the switch widget to "Script Not Running" and off and stops the selenium Script.
-        It will quit the selenium browser as well.
-
-        :returns:
-            None
-        """
-        self.set_switch(status=False, switch_widget=self.script_switch, switch_str_var=self.script_running_var,
-                        disable_widget=True, switch_text="Script Not Running")
-        self.webpage.quit_selenium()
-
-    def stop_script_command(self):
-        """
-        Create a new thread to stop the currently running Selenium script.
-
-        This method creates a new thread to call the `stop_script` method,
-        which will stop the currently running Selenium script. The new thread
-        allows the user to continue interacting with the application while the
-        script is stopped.
-
-        :returns:
-            None
-        """
-        thread = threading.Thread(target=self.stop_script)
-        thread.start()
-
     @classmethod
     def set_switch(cls, status: bool, switch_widget: ctk.CTkSwitch, switch_str_var: ctk.StringVar, **kwargs):
         """
@@ -171,35 +138,6 @@ class CargoInterface(ctk.CTk):
         else:
             switch_str_var.set(value="off")
 
-    def sla_bot_report_command(self):
-        """
-        Create new thread for starting the selenium script
-        This method will allow the user to continue to interact with the GUI while the script is
-        running in the background.
-
-        :return:
-            None
-        """
-        thread = threading.Thread(target=self.sla_bot_report_click)
-        thread.start()
-
-    # TODO: Add more detailed docstring once method is completed.
-    def sla_bot_report_click(self):
-        """Start selenium script to generate the SLA/Bot Report"""
-        self.set_switch(status=True, switch_widget=self.script_switch, switch_str_var=self.script_running_var,
-                        disable_widget=False, switch_text="Script Running")
-        self.start_selenium()
-        self._set_credentials()
-
-        # Check all conditions. This will make sure nothing failed before making it to the "Airway bills to Ship Report"
-        loading_waybill_page = all((self.check_page_load(),
-                                    self.webpage.login(),
-                                    self.login_success(),
-                                    self.webpage.waybills_to_ship_page(WAYBILLS_REPORT_URL)))
-
-        # if loading_waybill_page:
-        #     pass
-
     def open_settings(self):
         """
         Open the Setting GUI Window.
@@ -235,33 +173,6 @@ class CargoInterface(ctk.CTk):
             self.textbox.pack()
             self.webpage_btn.pack(pady="15")
 
-    def _set_credentials(self):
-        """
-        Sets the username and password for the script from environment variables.
-
-        This method sets the `username` and `password` attributes of the `webpage` object
-        to the values stored in the `USERNAME` and `PASSWORD` environment variables.
-
-        :return:
-            None
-        """
-        self.webpage.username = USERNAME
-        self.webpage.password = PASSWORD
-
-    def start_selenium(self):
-        """
-        Starts the selenium script and loads the starting webpage.
-
-        This method starts the selenium webdriver script by calling the `start_selenium` method
-        of the `webpage` object. It then loads the starting webpage by calling the `load_url` method
-        with the `CARGO_HOMEPAGE` URL.
-
-        :return:
-            None
-        """
-        self.webpage.start_selenium()
-        self.webpage.load_url(CARGO_HOMEPAGE)
-
     @classmethod
     def display_error(cls, title: str, message: str):
         """
@@ -275,7 +186,76 @@ class CargoInterface(ctk.CTk):
         """
         messagebox.showerror(title, message)
 
-    def check_page_load(self) -> bool:
+    def stop_script(self):
+        """
+        Stops the selenium script.
+
+        This method sets the switch widget to "Script Not Running" and off and stops the selenium Script.
+        It will quit the selenium browser as well.
+
+        :returns:
+            None
+        """
+        self.set_switch(status=False, switch_widget=self.script_switch, switch_str_var=self.script_running_var,
+                        disable_widget=True, switch_text="Script Not Running")
+        self.webpage.quit_selenium()
+
+    def stop_script_command(self):
+        """
+        Create a new thread to stop the currently running Selenium script.
+
+        This method creates a new thread to call the `stop_script` method,
+        which will stop the currently running Selenium script. The new thread
+        allows the user to continue interacting with the application while the
+        script is stopped.
+
+        :returns:
+            None
+        """
+        thread = threading.Thread(target=self.stop_script)
+        thread.start()
+
+    def sla_bot_report_command(self):
+        """
+        Create new thread for starting the selenium script
+        This method will allow the user to continue to interact with the GUI while the script is
+        running in the background.
+
+        :return:
+            None
+        """
+        thread = threading.Thread(target=self.sla_bot_report_click)
+        thread.start()
+
+    # TODO: Add more detailed docstring once method is completed.
+    def sla_bot_report_click(self):
+        """Start selenium script to generate the SLA/Bot Report"""
+        self.set_switch(status=True, switch_widget=self.script_switch, switch_str_var=self.script_running_var,
+                        disable_widget=False, switch_text="Script Running")
+        self.start_selenium()
+
+        # Check all conditions. This will make sure nothing failed before making it to the "Airway bills to Ship Report"
+        loading_waybill_page = all((self.starting_webpage_load(),
+                                    self.login_success(),
+                                    self.webpage.waybills_to_ship_page(self.webpage_data.get_waybill_url())))
+        if loading_waybill_page:
+            self.webpage_data.test()
+
+    def start_selenium(self):
+        """
+        Starts the selenium script and loads the starting webpage.
+
+        This method starts the selenium webdriver script by calling the `start_selenium` method
+        of the `webpage` object. It then loads the starting webpage by calling the `load_url` method
+        with the `CARGO_HOMEPAGE` URL. It will retrieve the cargo homepage URL from the WebpageData class.
+
+        :return:
+            None
+        """
+        self.webpage.start_selenium()
+        self.webpage.load_url(self.webpage_data.get_cargo_homepage())
+
+    def starting_webpage_load(self) -> bool:
         """
         Checks if a webpage is loaded correctly.
 
@@ -294,13 +274,16 @@ class CargoInterface(ctk.CTk):
 
     def login_success(self) -> bool:
         """
-        Check if the script successfully logged in.
+        Try to log in and see if the script successfully logged in.
 
-        This method checks if the script was able to successfully login by calling 'check_login' method of the 'webpage'
-        object. If script is unable to login, it displays an error message using a pop-up window.
+        This method trys to login and checks if the script was able to successfully log in by calling 'check_login'
+        method of the 'webpage' object. If script is unable to login, it displays an error message using a pop-up window.
         :return:
             bool: True if the script successfully logged in, false otherwise.
         """
+
+        self.webpage.login()
+
         # If login was unsuccessful provide popup.
         if not self.webpage.check_login():
             messagebox.showerror("Login Unsuccessful", "The login was unsuccessful")
