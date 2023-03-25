@@ -239,7 +239,7 @@ class CargoInterface(ctk.CTk):
                                     self.login_success(),
                                     self.webpage.waybills_to_ship_page(self.webpage_data.get_waybill_url())))
         if loading_waybill_page:
-            self.webpage_data.test()
+            self.webpage.fill_in_waybills_form()
 
     def start_selenium(self):
         """

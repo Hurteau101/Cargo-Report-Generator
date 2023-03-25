@@ -7,6 +7,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from datetime import date
 import time
+
+from Settings_Data import SettingsData
+from table_data import TableData
 from utils import type_check
 from webpage_data import WebpageData
 
@@ -27,6 +30,7 @@ class CargoWebpage:
         - check_webpage_loaded(element: str, wait_time: int): Check if the given webpage element is loaded within the given wait time.
         - check_login(): Check if the user is logged into the Cargo webpage.
     """
+
     def __init__(self):
         self.driver = None
         self.waybill_data = None
@@ -121,15 +125,39 @@ class CargoWebpage:
             return True
         return False
 
-
     # TODO: Add docstring when method is finished.
-    def waybills_data(self, waybill_data: dict):
+    def fill_in_waybills_form(self):
         from_date_field = self.driver.find_element(By.XPATH, "//input[@id='txt_from_date75']")
         from_airport_field = self.driver.find_element(By.XPATH, "/html/body/div[7]/form/div/div[1]/div/div/div/div["
                                                                 "4]/div/div[2]/div/select")
         to_airport_field = self.driver.find_element(By.XPATH, "/html/body/div[7]/form/div/div[1]/div/div/div/div["
                                                               "5]/div/div[2]/div/select")
+        search_button = self.driver.find_element(By.XPATH, "//button[@id='btn_search75']")
 
+        # Get Setting Values for SLA/Bot Settings to fill in form with appropriate settings.
+        sla_bot_data = self.webpage_data.get_setting_values("SLA")
 
+        # Clear the date field, or it will cause issues inputting the date.
+        from_date_field.clear()
+
+        from_date_field.send_keys(sla_bot_data["Date"])
+        Select(from_airport_field).select_by_value(sla_bot_data["FromAirport"])
+        Select(to_airport_field).select_by_value(sla_bot_data["ToAirport"])
+
+        search_button.click()
+
+        sort_button = WebDriverWait(self.driver, 5).until(
+            EC.visibility_of_element_located((
+                By.XPATH, "/html/body/div[7]/div[5]/div[3]/div[1]/div[2]/div/div[3]/div/table/thead/tr/th[13]/a")))
+        sort_button.click()
+
+        # Find Table
+        waybill_table = self.driver.find_element(By.XPATH,
+                                                 "/html/body/div[7]/div[5]/div[3]/div[1]/div[2]/div/div[4]/table")
+
+        # Get Entire HTML Code for table element and store in string.
+        waybill_html = waybill_table.get_attribute('outerHTML')
+
+        table = TableData(waybill_html)
 
 

@@ -453,11 +453,11 @@ class SettingWindow(ctk.CTkToplevel):
         }
 
         if current_values["SLA/Bot Values"] != self.previous_values["SLA/Bot Values"]:
-            self.previous_values = current_values
+            self.previous_values["SLA/Bot Values"] = current_values["SLA/Bot Values"]
             self.save_sla_bot_settings()
 
         if current_values["Home Delivery Values"] != self.previous_values["Home Delivery Values"]:
-            self.previous_values = current_values
+            self.previous_values["Home Delivery Values"] = current_values["Home Delivery Values"]
             self.save_home_settings()
 
     def on_focus_in(self, event):

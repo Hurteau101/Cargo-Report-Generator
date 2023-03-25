@@ -2,6 +2,7 @@ from dateutil.relativedelta import relativedelta
 from datetime import date
 from dotenv import load_dotenv
 import os
+import pandas as pd
 
 from Settings_Data import SettingsData
 
@@ -19,9 +20,6 @@ class WebpageData:
         self._password = PASSWORD
         self._cargo_homepage = CARGO_HOMEPAGE
         self._waybill_url = WAYBILLS_REPORT_URL
-        self.home_setting_data = None
-        self.sla_bot_setting_data = None
-
 
     def get_username(self):
         return self._username
@@ -47,33 +45,87 @@ class WebpageData:
         :return: Returns the date as a reformatted string. (Ex. 25-Mar-2023)
         """
         today_date = date.today()
-        new_date_object = today_date + relativedelta(months=months, days=days)
+        new_date_object = today_date + relativedelta(months=-months, days=-days)
         new_date_string = new_date_object.strftime('%d-%b-%Y')
 
         return new_date_string
 
-    def get_setting_values(self, settings_data: object):
+    def get_setting_values(self, setting_group: str):
         """
-        Gets the setting values that are stored in the database and sets them to the appropriate attributes.
-        This method will get the setting values which are stored in a database. These values will be used later on
-        to fill in a webpage form to generate the appropriate reports.
-        :param settings_data: Pass in the SettingData() class which holds a method to retrieve the appropriate settings
-        for either the SLA/Bot Settings or Home Delivery Settings
+        Get the settings values for a specific setting group. Pass in either "SLA/Bot" or "Home".
+
+        This method will get the setting values which are stored in a database. It will obtain the values based on
+        "SLA/Bot" or "Home" which you will pass in as an argument. It will also update the dictionary to add a
+        new item of Date to the dictionary to be used to fill in a "From Date" form from the webpage.
+
+        :param setting_group: Pass in which settings you want to update. Either "SLA/Bot" or "Home".
+        :return: Returns a dictionary of the settings.
+        """
+
+        settings = SettingsData()
+
+        if setting_group.upper() == "SLA":
+            sla_dict = settings.get_bot_sla_data()
+            self.update_setting_dictionary(sla_dict)
+            return sla_dict
+        elif setting_group.upper() == "HOME":
+            home_dict = settings.get_home_delivery_data()
+            self.update_setting_dictionary(home_dict)
+            return home_dict
+        else:
+            raise ValueError(f"{setting_group} is not a valid setting group. Please only pass in 'SLA' or 'Home'")
+
+    def update_setting_dictionary(self, setting_dict):
+        """
+        Update the appropriate values in setting dictionary that is passed in as the argument.
+        This method updates any dictionary that needs to be updated with specific values, so that when the dictionary
+        is called later on to fill in a form, no value errors are provided by selenium.
+
+        :param setting_dict: Pass in which setting dictionary to update. Should be either SLA/Bot Report Setting or
+        Home Delivery Setting Dictionary
         :return: None
         """
-        self.sla_bot_setting_data = settings_data.get_bot_sla_data()
-        self.home_setting_data = settings_data.get_home_delivery_data()
+        self.update_date_settings(setting_dict)
+        self.update_airport_dictionary(setting_dict)
 
-    def update_date_settings(self):
-        pass
+    @classmethod
+    def update_airport_dictionary(cls, setting_dict: dict):
+        """
+        Checks the dictionary key of "ToAirport" and "FromAirport" to see if the value is "Please Select". If it is
+        it updates its value to 0.
 
-    def test(self):
-        setting_data = SettingsData()
-        self.get_setting_values(setting_data)
+        This method checks to see if the dictionary key of the passed in setting dictionary for "ToAirport" and
+        "FromAirport" values are "Please Select". If they are, they will be changed to 0. The reason for this, is the
+        drop-down for each of the airport's "Please Select" value isn't actually "Please Select". The value is
+        associated with 0 instead. This will prevent errors of not finding that value.
 
-        print(self.home_setting_data)
-        print(self.sla_bot_setting_data)
+        :param setting_dict: Pass in which setting dictionary to update. Should be either SLA/Bot Report Setting or
+        Home Delivery Setting Dictionary.
+        :return: None
+        """
+        to_airport = setting_dict["ToAirport"]
 
+        if to_airport == "Please Select":
+            setting_dict["ToAirport"] = "0"
+
+    def update_date_settings(self, setting_dict: dict):
+        """
+        Add a configured date to the specific setting_dict. (Ex. Date: 25-Mar-2023 added to dictionary)
+        This method will add a new date string to the specified dictionary. This new date will be used on the Cargo
+        Webpage that requires you to fill in "From Date". We are using the settings of NumOfMonths which is used to
+        decide how many months back to go from the current date and NumOfDays which is used to decide how many days
+        to go back from the current date. Using that information, this method can create a date item in the dictionary.
+        :param setting_dict: Pass in the appropriate setting dictionary. Valid values are sla_bot_setting_data or
+        sla_bot_setting_data dictionary attribute.
+
+        :return: None
+        """
+        num_of_months = setting_dict["NumOfMonths"]
+        num_of_days = setting_dict["NumOfDays"]
+
+        new_date = self.subtract_date(months=num_of_months, days=num_of_days)
+
+        setting_dict["Date"] = new_date
 
     @classmethod
     def today_date(cls):
@@ -92,40 +144,3 @@ class WebpageData:
 
 
 
-
-
-
-
- # @property
-    # def username(self) -> str:
-    #     """
-    #     Get the username
-    #     :return: Returns the username.
-    #     """
-    #     return self._username
-    #
-    # @username.setter
-    # def username(self, username: str):
-    #     """
-    #     Set username
-    #     :param username: The username for the cargo webpage.
-    #     :return: None
-    #     """
-    #     self._username = username
-    #
-    # @property
-    # def password(self) -> str:
-    #     """
-    #     Get the password
-    #     :return: Returns the password
-    #     """
-    #     return self._password
-    #
-    # @password.setter
-    # def password(self, password: str):
-    #     """
-    #     Set password
-    #     :param password:  The password for the cargo webpage.
-    #     :return: None
-    #     """
-    #     self._password = password
