@@ -17,7 +17,8 @@ class TableData:
         :return: None
         """
         # index = False so the index will not be included in the Excel file.
-        dataframe.to_excel(excel_name, index=False)
+        with pd.ExcelWriter(excel_name) as writer:
+            dataframe.to_excel(writer, index=False)
 
     @classmethod
     def rename_columns(cls, dataframe: pd.DataFrame, column_names: dict) -> pd.DataFrame:
@@ -188,10 +189,3 @@ class TableData:
         # tuple, we use dict to convert it back to a dictionary. x[1] so we start at index 1 which is the values
         # the keys would be [0]
         self.sla_data = dict(sorted(self.sla_data.items(), key=lambda x: x[1], reverse=True))
-
-
-#excel_file = pd.read_excel('Waybills.xlsx')
-#table = TableData(excel_file)
-# table.reformat_sla_bot_table()
-# table.reformat_past_sla_data(table.table_data)
-# table.export_to_excel(table.table_data, "test.xlsx")
