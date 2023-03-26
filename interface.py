@@ -252,6 +252,9 @@ class CargoInterface(ctk.CTk):
 
             waybill_report.export_to_excel(waybill_report.table_data, "test.xlsx")
 
+            self.set_switch(status=False, switch_widget=self.script_switch, switch_str_var=self.script_running_var,
+                            disable_widget=True, switch_text="Script Not Running")
+
     def start_selenium(self):
         """
         Starts the selenium script and loads the starting webpage.
