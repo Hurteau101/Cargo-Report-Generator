@@ -1,4 +1,6 @@
 import customtkinter as ctk
+
+from table_data import TableData
 from webpage_loader import CargoWebpage
 from dotenv import load_dotenv
 import os
@@ -239,7 +241,16 @@ class CargoInterface(ctk.CTk):
                                     self.login_success(),
                                     self.webpage.waybills_to_ship_page(self.webpage_data.get_waybill_url())))
         if loading_waybill_page:
-            self.webpage.fill_in_waybills_form()
+            waybill_data, setting_day = self.webpage.fill_in_waybills_form()
+            waybill_report = TableData(waybill_data)
+            waybill_report.day_sorter = setting_day
+
+            waybill_report.reformat_sla_bot_table()
+            waybill_report.reformat_past_sla_data()
+
+            waybill_report.sort_sla_bot_table()
+
+            waybill_report.export_to_excel(waybill_report.table_data, "test.xlsx")
 
     def start_selenium(self):
         """

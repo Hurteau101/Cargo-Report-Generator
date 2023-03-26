@@ -5,8 +5,8 @@ from datetime import date
 class TableData:
     def __init__(self, waybill_table):
         # TODO: Uncomment once ready to test fully.
-        # self.table_data = pd.read_html(waybill_table)[0]
-        self.table_data = waybill_table
+        self.table_data = pd.read_html(waybill_table)[0]
+        #self.table_data = waybill_table
         self.sla_data = None
         # This attribute is used to filter the rows by a certain day.
         self.day_sorter = None
@@ -99,8 +99,18 @@ class TableData:
         self.table_data = self.modify_column_string(self.table_data, column_name="Route", replace_string="WPG = ",
                                                     replace_string_with="")
         self.add_day_values(self.table_data)
-        self.sort_column(dataframe=self.table_data, column_name="Days", ascending=False)
+
+
+    def sort_sla_bot_table(self):
+        """
+        Sort the SLA/Bot Report based on the day_sorter value. (Ex. day_sorter = 8, then it will only show rows that
+        have a day greater than 8 in the "Days" column and then sort the values based on the highest value in "Days"
+        column.
+
+        :return: None
+        """
         self.sort_by_days(dataframe=self.table_data)
+        self.sort_column(dataframe=self.table_data, column_name="Days", ascending=False)
 
     @classmethod
     def sort_column(cls, dataframe: pd.DataFrame, column_name: str, ascending: bool):
@@ -142,6 +152,7 @@ class TableData:
          that has been here passed a certain amount of days is shown.
          :return: None
          """
+
         self.table_data = dataframe[dataframe["Days"] >= self.day_sorter]
 
     def get_past_sla_rows(self):
@@ -202,7 +213,7 @@ class TableData:
         self.convert_column_to_datatype(dataframe=dataframe, column_name="Weight", data_type="int")
         self.sla_data = dataframe.groupby('Route')['Weight'].sum().to_dict()
 
-    def reformat_past_sla_data(self, dataframe: pd.DataFrame):
+    def reformat_past_sla_data(self):
         """
         Creates the SLA Dictionary and reformat it to display in the proper way. It first calls the get_sla_data,
         which gets the SLA dictionary and stores it in the sla_data attribute. It then adds all common destinations into
@@ -210,7 +221,7 @@ class TableData:
         :param dataframe: The DataFrame to modify.
         :return: None
         """
-        self.get_past_sla_data(dataframe)
+        self.get_past_sla_data(self.table_data)
         self.add_common_destinations()
         self.sort_dictionary()
 
@@ -248,11 +259,3 @@ class TableData:
         # the keys would be [0]
         self.sla_data = dict(sorted(self.sla_data.items(), key=lambda x: x[1], reverse=True))
 
-
-# waybill_data = pd.read_excel("Waybills.xlsx")
-#
-# waybill_report = TableData(waybill_data)
-# waybill_report.reformat_sla_bot_table()
-# waybill_report.reformat_past_sla_data(waybill_report.table_data)
-#
-# waybill_report.export_to_excel(waybill_report.table_data, "test.xlsx")

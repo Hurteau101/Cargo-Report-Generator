@@ -160,7 +160,7 @@ class CargoWebpage:
 
         self.quit_selenium()
 
-        return waybill_html, sla_bot_data["Days"]
+        return waybill_html, sla_bot_data["DayAmount"]
 
 
 
