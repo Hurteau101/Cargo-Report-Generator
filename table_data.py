@@ -1,12 +1,15 @@
 import pandas as pd
+from datetime import date
 
 
 class TableData:
     def __init__(self, waybill_table):
         # TODO: Uncomment once ready to test fully.
-        self.table_data = pd.read_html(waybill_table)[0]
-        #self.table_data = waybill_table
+        # self.table_data = pd.read_html(waybill_table)[0]
+        self.table_data = waybill_table
         self.sla_data = None
+        # This attribute is used to filter the rows by a certain day.
+        self.day_sorter = None
 
     @classmethod
     def export_to_excel(cls, dataframe: pd.DataFrame, excel_name: str):
@@ -76,7 +79,10 @@ class TableData:
         ensure only the necessary rows are displayed for the SLA/Bot Report.
         :return: None
         """
-        self.drop_columns(self.table_data, [0, 2, 3, 7, 8, 9, 13, 14])
+        self.get_past_sla_rows()
+        self.drop_columns(self.table_data, [0, 2, 3, 7, 8, 9, 12, 13, 14])
+        # Reset index, due to dropped columns.
+        self.table_data = self.table_data.reset_index(drop=True)
         self.rename_columns(self.table_data, {
             1: "Route",
             4: "AWB",
@@ -84,15 +90,59 @@ class TableData:
             6: "Cosignee",
             10: "Peice Count",
             11: "Weight",
-            12: "Days",
             15: "Recvd Date"
         })
 
         self.table_data = self.insert_column(self.table_data, last_column=True, column_name="Status")
         self.table_data = self.insert_column(self.table_data, last_column=True, column_name="Remarks")
+        self.table_data = self.insert_column(self.table_data, last_column=False, column_name="Days", column_position=6)
         self.table_data = self.modify_column_string(self.table_data, column_name="Route", replace_string="WPG = ",
                                                     replace_string_with="")
-        self.get_past_sla_rows()
+        self.add_day_values(self.table_data)
+        self.sort_column(dataframe=self.table_data, column_name="Days", ascending=False)
+        self.sort_by_days(dataframe=self.table_data)
+
+    @classmethod
+    def sort_column(cls, dataframe: pd.DataFrame, column_name: str, ascending: bool):
+        dataframe.sort_values(by=column_name, ascending=ascending, inplace=True)
+
+    def add_day_values(self, dataframe: pd.DataFrame):
+        """
+        Get the current date and convert it to a Timestamp Object. The method will loop through the "Recvd Date"
+        column and take the "Recvd Date" value and subtract it with today's date. This will give us how many days
+        a peice of cargo has been in the system. It will then input that new value into the "Days" column. The value
+        will be negative, so we use Abs to convert it to a positive integer. Lastly drop the "Recvd" Column, as it
+        won't be used anymore.
+        :param dataframe: The DataFrame to modify.
+        :return: None
+        """
+
+        # Convert "Recvd Date" to Timestamp.
+        self.modify_recd_column()
+
+        today_date = pd.Timestamp(date.today())
+
+        for i in range(len(dataframe["Recvd Date"])):
+            delta = dataframe.at[i, "Recvd Date"] - today_date
+            self.table_data.at[i, "Days"] = abs(delta.days)
+
+        self.drop_columns(dataframe, ["Recvd Date"])
+
+    def modify_recd_column(self):
+        """
+        This converts the "Recvd Date" Column to a Timestamp object.
+        :return: None
+        """
+        self.table_data = self.convert_column_to_datatype(dataframe=self.table_data, column_name="Recvd Date",
+                                                          data_type="datetime64[ns]")
+
+    def sort_by_days(self, dataframe: pd.DataFrame):
+        """Remove any rows that are less than the value of day_sort. The day_sort will contain the value
+         from the SLA/Bot Report Setting (Days) entry box. This will sort the SLA/Bot Report to ensure only cargo
+         that has been here passed a certain amount of days is shown.
+         :return: None
+         """
+        self.table_data = dataframe[dataframe["Days"] >= self.day_sorter]
 
     def get_past_sla_rows(self):
         """
@@ -103,7 +153,7 @@ class TableData:
         # Check if "-" in column 12. If "-" in column 12, return true. Returns all rows with "-"
         # ~ is used to invert the boolean value that is returned from this. Without the ~ it would only display
         # rows that don't contain "-". We only want to display values with "-".
-        self.table_data.drop(self.table_data[~self.table_data["Days"].str.contains('-')].index,
+        self.table_data.drop(self.table_data[~self.table_data[12].str.contains('-')].index,
                              inplace=True)
 
     @classmethod
@@ -122,14 +172,22 @@ class TableData:
         return dataframe
 
     @classmethod
-    def convert_column_to_int(cls, dataframe: pd.DataFrame, column_name: str) -> pd.DataFrame:
+    def convert_column_to_datatype(cls, dataframe: pd.DataFrame, column_name: str, data_type: str) -> pd.DataFrame:
         """
         Converts an entire column to int datatype.
+
         :param dataframe: The DataFrame to modify.
         :param column_name: The column to convert to an int.
+        :param data_type: The datatype to convert the column to. (Valid Types: 'int', 'float', 'str',
+        'bool', 'datetime64[ns]'
         :return: Returns the new modified DataFrame with the column converted to an integer.
         """
-        dataframe[column_name] = dataframe[column_name].astype('int')
+
+        valid_data_types = ['int', 'float', 'str', 'bool', 'datetime64[ns]']
+        if data_type not in valid_data_types:
+            raise ValueError(f"{data_type} is not valid data type in this method")
+
+        dataframe[column_name] = dataframe[column_name].astype(data_type)
         return dataframe
 
     def get_past_sla_data(self, dataframe: pd.DataFrame):
@@ -141,7 +199,7 @@ class TableData:
         :param dataframe: The DataFrame to modify.
         :return:
         """
-        self.convert_column_to_int(dataframe, "Weight")
+        self.convert_column_to_datatype(dataframe=dataframe, column_name="Weight", data_type="int")
         self.sla_data = dataframe.groupby('Route')['Weight'].sum().to_dict()
 
     def reformat_past_sla_data(self, dataframe: pd.DataFrame):
@@ -177,7 +235,7 @@ class TableData:
 
         if any(destination in self.sla_data for destination in st_theresa_common):
             st_theresa_location_sum = sum(self.sla_data[destination] and self.sla_data.pop(destination)
-                                         for destination in st_theresa_common if destination in self.sla_data)
+                                          for destination in st_theresa_common if destination in self.sla_data)
             self.sla_data["YST/WGK Locations"] = st_theresa_location_sum
 
     def sort_dictionary(self):
@@ -189,3 +247,12 @@ class TableData:
         # tuple, we use dict to convert it back to a dictionary. x[1] so we start at index 1 which is the values
         # the keys would be [0]
         self.sla_data = dict(sorted(self.sla_data.items(), key=lambda x: x[1], reverse=True))
+
+
+# waybill_data = pd.read_excel("Waybills.xlsx")
+#
+# waybill_report = TableData(waybill_data)
+# waybill_report.reformat_sla_bot_table()
+# waybill_report.reformat_past_sla_data(waybill_report.table_data)
+#
+# waybill_report.export_to_excel(waybill_report.table_data, "test.xlsx")
