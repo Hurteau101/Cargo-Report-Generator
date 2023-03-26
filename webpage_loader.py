@@ -158,6 +158,9 @@ class CargoWebpage:
         # Get Entire HTML Code for table element and store in string.
         waybill_html = waybill_table.get_attribute('outerHTML')
 
-        table = TableData(waybill_html)
+        self.quit_selenium()
+
+        return waybill_html
+
 
 
