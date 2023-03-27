@@ -243,14 +243,15 @@ class CargoInterface(ctk.CTk):
         if loading_waybill_page:
             waybill_data, setting_day = self.webpage.fill_in_waybills_form()
             waybill_report = TableData(waybill_data)
-            waybill_report.day_sorter = setting_day
 
-            waybill_report.reformat_sla_bot_table()
-            waybill_report.reformat_past_sla_data()
 
-            waybill_report.sort_sla_bot_table()
+            #waybill_report.day_sorter = setting_day
+
+           # waybill_report.generate_sla_dict()
+            #waybill_report.reformat_sla_bot_table()
 
             waybill_report.export_to_excel(waybill_report.table_data, "test.xlsx")
+            print(waybill_report.sla_data)
 
             self.set_switch(status=False, switch_widget=self.script_switch, switch_str_var=self.script_running_var,
                             disable_widget=True, switch_text="Script Not Running")

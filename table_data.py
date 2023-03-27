@@ -5,11 +5,11 @@ from datetime import date
 class TableData:
     def __init__(self, waybill_table):
         # TODO: Uncomment once ready to test fully.
-        self.table_data = pd.read_html(waybill_table)[0]
-        #self.table_data = waybill_table
+        #self.table_data = pd.read_html(waybill_table)[0]
+        self.table_data = waybill_table
         self.sla_data = None
         # This attribute is used to filter the rows by a certain day.
-        self.day_sorter = None
+        self.day_sorter = 0
 
     @classmethod
     def export_to_excel(cls, dataframe: pd.DataFrame, excel_name: str):
@@ -37,16 +37,16 @@ class TableData:
         return dataframe
 
     @classmethod
-    def drop_columns(cls, dataframe: pd.DataFrame, column_names: list) -> pd.DataFrame:
+    def drop_columns(cls, dataframe: pd.DataFrame, column_names: list):
         """
         Drops the specified columns that are passed in as column_name agreement.
         This method takes a list of column names that you want to delete from the DataFrame.
         :param dataframe: The DataFrame to modify.
         :param column_names: The list of Columns to delete.
-        :return: Returns the new modified DataFrame with the specific columns deleted.
+        :return: None
         """
         dataframe.drop(column_names, axis=1, inplace=True)
-        return dataframe
+
 
     @classmethod
     def insert_column(cls, dataframe: pd.DataFrame, last_column: bool, column_name: str,
@@ -73,115 +73,6 @@ class TableData:
             dataframe.insert(column_position, column_name, value="")
             return dataframe
 
-    def reformat_sla_bot_table(self):
-        """
-        Reformat the DataFrame to ensure the appropriate columns are displayed, the appropriate column names and to
-        ensure only the necessary rows are displayed for the SLA/Bot Report.
-        :return: None
-        """
-        self.get_past_sla_rows()
-        self.drop_columns(self.table_data, [0, 2, 3, 7, 8, 9, 12, 13, 14])
-        # Reset index, due to dropped columns.
-        self.table_data = self.table_data.reset_index(drop=True)
-        self.rename_columns(self.table_data, {
-            1: "Route",
-            4: "AWB",
-            5: "Goods Desc.",
-            6: "Cosignee",
-            10: "Peice Count",
-            11: "Weight",
-            15: "Recvd Date"
-        })
-
-        self.table_data = self.insert_column(self.table_data, last_column=True, column_name="Status")
-        self.table_data = self.insert_column(self.table_data, last_column=True, column_name="Remarks")
-        self.table_data = self.insert_column(self.table_data, last_column=False, column_name="Days", column_position=6)
-        self.table_data = self.modify_column_string(self.table_data, column_name="Route", replace_string="WPG = ",
-                                                    replace_string_with="")
-        self.add_day_values(self.table_data)
-
-
-    def sort_sla_bot_table(self):
-        """
-        Sort the SLA/Bot Report based on the day_sorter value. (Ex. day_sorter = 8, then it will only show rows that
-        have a day greater than 8 in the "Days" column and then sort the values based on the highest value in "Days"
-        column.
-
-        :return: None
-        """
-        self.sort_by_days(dataframe=self.table_data)
-        self.sort_column(dataframe=self.table_data, column_name="Days", ascending=False)
-
-    @classmethod
-    def sort_column(cls, dataframe: pd.DataFrame, column_name: str, ascending: bool):
-        dataframe.sort_values(by=column_name, ascending=ascending, inplace=True)
-
-    def add_day_values(self, dataframe: pd.DataFrame):
-        """
-        Get the current date and convert it to a Timestamp Object. The method will loop through the "Recvd Date"
-        column and take the "Recvd Date" value and subtract it with today's date. This will give us how many days
-        a peice of cargo has been in the system. It will then input that new value into the "Days" column. The value
-        will be negative, so we use Abs to convert it to a positive integer. Lastly drop the "Recvd" Column, as it
-        won't be used anymore.
-        :param dataframe: The DataFrame to modify.
-        :return: None
-        """
-
-        # Convert "Recvd Date" to Timestamp.
-        self.modify_recd_column()
-
-        today_date = pd.Timestamp(date.today())
-
-        for i in range(len(dataframe["Recvd Date"])):
-            delta = dataframe.at[i, "Recvd Date"] - today_date
-            self.table_data.at[i, "Days"] = abs(delta.days)
-
-        self.drop_columns(dataframe, ["Recvd Date"])
-
-    def modify_recd_column(self):
-        """
-        This converts the "Recvd Date" Column to a Timestamp object.
-        :return: None
-        """
-        self.table_data = self.convert_column_to_datatype(dataframe=self.table_data, column_name="Recvd Date",
-                                                          data_type="datetime64[ns]")
-
-    def sort_by_days(self, dataframe: pd.DataFrame):
-        """Remove any rows that are less than the value of day_sort. The day_sort will contain the value
-         from the SLA/Bot Report Setting (Days) entry box. This will sort the SLA/Bot Report to ensure only cargo
-         that has been here passed a certain amount of days is shown.
-         :return: None
-         """
-
-        self.table_data = dataframe[dataframe["Days"] >= self.day_sorter]
-
-    def get_past_sla_rows(self):
-        """
-        Deletes any row in the DataFrame that contains "-" in the Days Column. This is to ensure that only past
-        SLA rows are shown.
-        :return: None
-        """
-        # Check if "-" in column 12. If "-" in column 12, return true. Returns all rows with "-"
-        # ~ is used to invert the boolean value that is returned from this. Without the ~ it would only display
-        # rows that don't contain "-". We only want to display values with "-".
-        self.table_data.drop(self.table_data[~self.table_data[12].str.contains('-')].index,
-                             inplace=True)
-
-    @classmethod
-    def modify_column_string(cls, dataframe: pd.DataFrame, column_name: str, replace_string: str,
-                             replace_string_with: str) -> pd.DataFrame:
-        """
-        Modify the text in the rows. Remove any part of a string in that row to a new value.
-        (Ex. Old String: "WPG = YYC". Using this method - (YYC). It removed "WPG = " from that specific value.
-        :param dataframe: The DataFrame to modify.
-        :param column_name: The column to check which rows to modify.
-        :param replace_string: Replaces the string specified (Can be full string or part of string).
-        :param replace_string_with: Replace with this string.
-        :return: Returns the new modified DataFrame with the newly modified string(s).
-        """
-        dataframe[column_name] = dataframe[column_name].str.replace(replace_string, replace_string_with)
-        return dataframe
-
     @classmethod
     def convert_column_to_datatype(cls, dataframe: pd.DataFrame, column_name: str, data_type: str) -> pd.DataFrame:
         """
@@ -201,29 +92,85 @@ class TableData:
         dataframe[column_name] = dataframe[column_name].astype(data_type)
         return dataframe
 
-    def get_past_sla_data(self, dataframe: pd.DataFrame):
+    @classmethod
+    def modify_column_string(cls, dataframe: pd.DataFrame, column_name: str, replace_string: str,
+                             replace_string_with: str) -> pd.DataFrame:
+        """
+        Modify the text in the rows. Remove any part of a string in that row to a new value.
+        (Ex. Old String: "WPG = YYC". Using this method - (YYC). It removed "WPG = " from that specific value.
+        :param dataframe: The DataFrame to modify.
+        :param column_name: The column to check which rows to modify.
+        :param replace_string: Replaces the string specified (Can be full string or part of string).
+        :param replace_string_with: Replace with this string.
+        :return: Returns the new modified DataFrame with the newly modified string(s).
+        """
+        dataframe[column_name] = dataframe[column_name].str.replace(replace_string, replace_string_with)
+        return dataframe
+
+    @classmethod
+    def sort_column(cls, dataframe: pd.DataFrame, column_name: str, ascending: bool):
+        dataframe.sort_values(by=column_name, ascending=ascending, inplace=True)
+
+    def create_starting_table(self):
+        """
+        Reformat the SLA/Bot Report starting table, by dropping unnecessary columns, renaming the header rows and
+        removing any value in the "Route" column that starts with "WPG = "
+        :return: None
+        """
+        self.drop_columns(dataframe=self.table_data, column_names=[0, 2, 3, 7, 8, 9, 13, 14])
+        # Reset index, due to dropped columns.
+        self.table_data = self.table_data.reset_index(drop=True)
+        self.rename_columns(self.table_data, {
+            1: "Route",
+            4: "AWB",
+            5: "Goods Desc.",
+            6: "Cosignee",
+            10: "Peice Count",
+            11: "Weight",
+            12: "Hours Remaining",
+            15: "Recvd Date",
+        })
+
+        self.table_data = self.modify_column_string(self.table_data, column_name="Route", replace_string="WPG = ",
+                                                    replace_string_with="")
+
+    def sla_report_creation(self):
+        """
+        Calls all methods that are responsible for creating the SLA Report. Such methods are getting only
+        keeping the rows that are in the negatives in "Hours Remaining" column (get_past_sla_rows),
+        grouping together all common alternative destinations (add_common_destinations) and sorting the SLA dictionary
+        to show the highest value first (sort_dictionary).
+        :return: None
+        """
+        sla_dataframe = self.get_past_sla_rows()
+        self.create_past_sla_dict(dataframe=sla_dataframe)
+        self.add_common_destinations()
+        self.sort_dictionary()
+
+    def get_past_sla_rows(self):
+        """
+        Deletes any row in the DataFrame that contains "-" in the Days Column. This is to ensure that only past
+        SLA rows are shown.
+        :return: None
+        """
+        # Check if "-" in column 12. If "-" in column 12, return true. Returns all rows with "-"
+        # ~ is used to invert the boolean value that is returned from this. Without the ~ it would only display
+        # rows that don't contain "-". We only want to display values with "-".
+        sla_report = self.table_data.drop(self.table_data[~self.table_data["Hours Remaining"].str.contains('-')].index)
+        return sla_report
+
+    def create_past_sla_dict(self, dataframe: pd.DataFrame):
         """
         Store all the values in the "Route" column into a dictionary with the name of the "Route" being the key and then
         adding all the weight values that are associated with that route for the value key. Method uses the group
         method to group all the "Route" values and then sums up all the "Weight" values that are associated with that
         "Route" into a dictionary.
-        :param dataframe: The DataFrame to modify.
-        :return:
-        """
-        self.convert_column_to_datatype(dataframe=dataframe, column_name="Weight", data_type="int")
-        self.sla_data = dataframe.groupby('Route')['Weight'].sum().to_dict()
 
-    def reformat_past_sla_data(self):
-        """
-        Creates the SLA Dictionary and reformat it to display in the proper way. It first calls the get_sla_data,
-        which gets the SLA dictionary and stores it in the sla_data attribute. It then adds all common destinations into
-        the sla_data dictionary. Lastly it will sort the sla_data dictionary by highest value first.
         :param dataframe: The DataFrame to modify.
         :return: None
         """
-        self.get_past_sla_data(self.table_data)
-        self.add_common_destinations()
-        self.sort_dictionary()
+        self.convert_column_to_datatype(dataframe=dataframe, column_name="Weight", data_type="int")
+        self.sla_data = dataframe.groupby('Route')['Weight'].sum().to_dict()
 
     def add_common_destinations(self):
         """
@@ -259,3 +206,93 @@ class TableData:
         # the keys would be [0]
         self.sla_data = dict(sorted(self.sla_data.items(), key=lambda x: x[1], reverse=True))
 
+    def bot_report_creation(self):
+        """
+        Calls all methods that are responsible for creating the Bot Report. Such methods are reformatting the Bot Report
+        table (reformat_bot_report_table), only showing rows that are greater than the day_sorter value (sort_by_days),
+        and sorting the columns to display the highest value in "Days" first (sort_column).
+
+        :return: None
+        """
+        self.reformat_bot_report_table()
+        self.sort_by_days(dataframe=self.table_data)
+        self.sort_column(dataframe=self.table_data, column_name="Days", ascending=False)
+
+    def reformat_bot_report_table(self):
+        """
+        Reformat the Bot Report Table by dropping "Hour Remaining" column, dropping any values that are empty in the
+        "Recvd Date", dropping the first row as it contains nothing but a subheader. Also inserts necessary columns for
+        the Bot Report table and adds values to the newly inserted "Days" column.
+        :return: None
+        """
+        self.drop_columns(self.table_data, column_names=["Hours Remaining"])
+        self.table_data.drop(self.table_data.index[0], inplace=True)
+        self.drop_empty_values(self.table_data, column_name=["Recvd Date"])
+        # Reset index, due to dropped columns.
+        self.table_data = self.table_data.reset_index(drop=True)
+
+        self.table_data = self.insert_column(self.table_data, last_column=True, column_name="Status")
+        self.table_data = self.insert_column(self.table_data, last_column=True, column_name="Remarks")
+        self.table_data = self.insert_column(self.table_data, last_column=False, column_name="Days", column_position=6)
+
+        self.add_day_values(self.table_data)
+
+    @classmethod
+    def drop_empty_values(cls, dataframe: pd.DataFrame, column_name: list):
+        """
+        Drop empty values that are in a column.
+        :param dataframe: The DataFrame to modify.
+        :param column_name: The list of columns to check of empty values.
+        :return: None
+        """
+        dataframe.dropna(subset=column_name, inplace=True)
+
+    def add_day_values(self, dataframe: pd.DataFrame):
+        """
+        Get the current date and convert it to a Timestamp Object. The method will loop through the "Recvd Date"
+        column and take the "Recvd Date" value and subtract it with today's date. This will give us how many days
+        a peice of cargo has been in the system. It will then input that new value into the "Days" column. The value
+        will be negative, so we use Abs to convert it to a positive integer. Lastly drop the "Recvd" Column, as it
+        won't be used anymore.
+        :param dataframe: The DataFrame to modify.
+        :return: None
+        """
+
+        # Convert "Recvd Date" to Timestamp.
+        self.modify_recd_column()
+
+        today_date = pd.Timestamp(date.today())
+
+        for i in range(len(dataframe["Recvd Date"])):
+            delta = dataframe.at[i, "Recvd Date"] - today_date
+            self.table_data.at[i, "Days"] = abs(delta.days)
+
+        self.drop_columns(dataframe, ["Recvd Date"])
+
+    def modify_recd_column(self):
+        """
+        This converts the "Recvd Date" Column to a Timestamp object.
+        :return: None
+        """
+        self.table_data = self.convert_column_to_datatype(dataframe=self.table_data, column_name="Recvd Date",
+                                                          data_type="datetime64[ns]")
+
+    def sort_by_days(self, dataframe: pd.DataFrame):
+        """Remove any rows that are less than the value of day_sort. The day_sorter will contain the value
+         from the SLA/Bot Report Setting (Days) entry box. This will sort the SLA/Bot Report to ensure only cargo
+         that has been here passed a certain amount of days is shown.
+         :return: None
+         """
+
+        self.table_data = dataframe[dataframe["Days"] >= self.day_sorter]
+
+
+# excel_file = pd.read_excel("Waybills.xlsx")
+# table = TableData(excel_file)
+# table.create_starting_table()
+# table.sla_report_creation()
+# print(table.sla_data)
+# table.bot_report_creation()
+#
+#
+# table.export_to_excel(table.table_data, "test.xlsx")
