@@ -5,8 +5,7 @@ from datetime import date
 class TableData:
     def __init__(self, waybill_table):
         # TODO: Uncomment once ready to test fully.
-        #self.table_data = pd.read_html(waybill_table)[0]
-        self.table_data = waybill_table
+        self.table_data = pd.read_html(waybill_table)[0]
         self.sla_data = None
         # This attribute is used to filter the rows by a certain day.
         self.day_sorter = 0
@@ -285,14 +284,3 @@ class TableData:
          """
 
         self.table_data = dataframe[dataframe["Days"] >= self.day_sorter]
-
-
-# excel_file = pd.read_excel("Waybills.xlsx")
-# table = TableData(excel_file)
-# table.create_starting_table()
-# table.sla_report_creation()
-# print(table.sla_data)
-# table.bot_report_creation()
-#
-#
-# table.export_to_excel(table.table_data, "test.xlsx")
