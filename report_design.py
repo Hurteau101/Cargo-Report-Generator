@@ -1,10 +1,12 @@
 import os
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
+from openpyxl.utils import get_column_letter
 from openpyxl import load_workbook
 import openpyxl
 import pandas as pd
 import tempfile
 import shutil
+from utils import type_check
 
 
 class ReportDesign:
@@ -57,8 +59,6 @@ class ReportDesign:
             self.change_font(cell_coordinate=cell_cord, bold=True)
             self.create_full_border(cell_coordinate=cell_cord)
 
-        self.workbook.save(self.temp_file)
-
     def get_cell_coordinates(self, cell_text: list):
         """
         This will get the cell coordinates based on text. It will loop through the Excel document and find the text
@@ -98,7 +98,6 @@ class ReportDesign:
                 self.fill_color(cell_coordinate=total_weight_cell_cord, hex_color='4285f4')
 
         self.add_total_weight_to_sla_table()
-        self.workbook.save(self.temp_file)
 
     def add_total_weight_to_sla_table(self):
         """
@@ -116,7 +115,6 @@ class ReportDesign:
 
         return total_sla_rows
 
-
     def all_cells_style(self, horizontal_alignment: str = "center"):
         """
         Method is responsible for changing the style of ALL cells in the Excel document.
@@ -126,6 +124,60 @@ class ReportDesign:
         for row in self.sheet.iter_rows():
             for cell in row:
                 cell.alignment = Alignment(horizontal=horizontal_alignment)
+
+    def set_columns_widths(self, column_custom_width: dict):
+        """
+        Responsible for setting the column widths of the specified columns.
+
+        :param column_custom_width:  Pass in a dictionary where the Keys are the columns (Ex. A, B) and the values are
+        the width you want to set that column to (Ex. 50). (Ex. column_custom_width = {"A": 100, "B": 50}
+        :return: None
+        """
+        # Ensure that the column_custom_width dictionary is in the proper format. The keys are actual column names
+        # (Ex. 'A' or 'B' or 'C') and the values (width) are int datatype.
+        for column_name, width in column_custom_width.items():
+            type_check(arg=width, arg_name="width", expected_type=int)
+            if not column_name.isalpha() or len(column_name) != 1:
+                raise ValueError(f"Please ensure when passing column_custom_width that the Keys are"
+                                 f" the name of the column. (Ex. 'A' or 'B' or 'C'")
+            else:
+                self.sheet.column_dimensions[column_name].width = width
+
+
+
+    @classmethod
+    def get_custom_column_widths(cls):
+        """
+        Set the specified columns in the Excel Document by a specific width. This will be used in the all_cells_style
+        method when you pass in a column_custom_width argument.
+        :return: Returns a dictionary of column names as the keys and the width as the values.
+        """
+        custom_column_width = {
+            "B": 15,
+            "C": 15,
+            "E": 13,
+            "F": 17,
+            "G": 25,
+            "H": 50,
+            "I": 13,
+            "J": 13,
+            "K": 13,
+            "L": 17,
+            "M": 40,
+        }
+
+        return custom_column_width
+
+    def get_columns_with_text(self):
+        """
+        Get a list of columns that contain text (Ex. A, B, C)
+        :return: Returns all columns that contain text.
+        """
+
+        column_with_text = [get_column_letter(cell.column) for col in self.sheet.iter_cols()
+                            for cell in col if cell.value is not None]
+
+        return column_with_text
 
     def create_full_border(self, cell_coordinate: str, border_type: str = 'thin'):
         """
@@ -161,7 +213,6 @@ class ReportDesign:
         """
         self.sheet[cell_coordinate].fill = PatternFill(start_color=hex_color, end_color=hex_color, fill_type=fill_type)
 
-
     def open_temp_file(self):
         """
         Opens the temporary Excel file. The temporary Excel file is first created in the insert_data_to_excel method.
@@ -183,6 +234,11 @@ class ReportDesign:
         self.all_cells_style(horizontal_alignment="center")
         self.header_design()
         self.sla_table_design()
+        self.set_columns_widths(column_custom_width=self.get_custom_column_widths())
+        self.save_temp_file()
+
+    def save_temp_file(self):
+        self.workbook.save(self.temp_file)
 
     def create_excel_file(self):
         """
