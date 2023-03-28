@@ -249,11 +249,11 @@ class CargoInterface(ctk.CTk):
             waybill_report.sla_report_creation_data()
             waybill_report.bot_report_creation_data()
 
-            design = ReportDesign(sla_data=waybill_report.sla_data, bot_data=waybill_report.table_data)
+            design = ReportDesign(sla_data=waybill_report.sla_data, bot_data=waybill_report.table_data,
+                                  total_sla_weight=waybill_report.sla_weight_sum)
             design.insert_data_to_excel()
             design.create_report()
             design.create_excel_file()
-
 
             self.set_switch(status=False, switch_widget=self.script_switch, switch_str_var=self.script_running_var,
                             disable_widget=True, switch_text="Script Not Running")

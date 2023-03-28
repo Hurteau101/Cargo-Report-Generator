@@ -75,7 +75,7 @@ class TableData:
     @classmethod
     def convert_column_to_datatype(cls, dataframe: pd.DataFrame, column_name: str, data_type: str) -> pd.DataFrame:
         """
-        Converts an entire column to int datatype.
+        Converts an entire column to a specified data type.
 
         :param dataframe: The DataFrame to modify.
         :param column_name: The column to convert to an int.
@@ -113,7 +113,7 @@ class TableData:
     def create_starting_table(self):
         """
         Reformat the SLA/Bot Report starting table, by dropping unnecessary columns, renaming the header rows and
-        removing any value in the "Route" column that starts with "WPG = "
+        removing any value in the "Route" column that starts with "WPG = ".
         :return: None
         """
         self.drop_columns(dataframe=self.table_data, column_names=[0, 2, 3, 7, 8, 9, 13, 14])
@@ -211,13 +211,18 @@ class TableData:
         """
         Calls all methods that are responsible for creating the Bot Report. Such methods are reformatting the Bot Report
         table (reformat_bot_report_table), only showing rows that are greater than the day_sorter value (sort_by_days),
-        and sorting the columns to display the highest value in "Days" first (sort_column).
+        and sorting the columns to display the highest value in "Days" first (sort_column). Also changes the
+        "Piece Count" and "Weight" columns to int, as they are originally set as strings.
 
         :return: None
         """
         self._reformat_bot_report_table()
         self._sort_by_days(dataframe=self.table_data)
         self.sort_column(dataframe=self.table_data, column_name="Days", ascending=False)
+        self.table_data = self.convert_column_to_datatype(dataframe=self.table_data, column_name="Piece Count",
+                                                          data_type='int')
+        self.table_data = self.convert_column_to_datatype(dataframe=self.table_data, column_name="Weight",
+                                                          data_type='int')
 
     def _reformat_bot_report_table(self):
         """
