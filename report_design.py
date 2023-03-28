@@ -50,8 +50,6 @@ class ReportDesign:
             self.change_font(cell_coordinate=cell_cord, bold=True)
             self.create_full_border(cell_coordinate=cell_cord)
 
-        self.table_data_fill_color()
-
         self.workbook.save(self.temp_file)
 
     def get_cell_coordinates(self, cell_text: list):
@@ -64,12 +62,16 @@ class ReportDesign:
 
         return coordinate_dict
 
-    def table_data_fill_color(self):
+    def sla_table_design(self):
 
         # Start at row 9 and every second row, it will color those cells light blue.
-        for row in range(9, len(self.sla_data) + 9, 2):
+        for row in range(9, len(self.sla_data) + 9):
             for col in ["B", "C"]:
-                self.fill_color(hex_color="e8f0fe", fill_type='solid', cell_coordinate=f"{col}{row}")
+                cell_cord = f"{col}{row}"
+                if row % 2 == 0:
+                    self.fill_color(hex_color="e8f0fe", fill_type='solid', cell_coordinate=cell_cord)
+
+                self.create_full_border(cell_coordinate=cell_cord, border_type="thin")
 
         self.workbook.save(self.temp_file)
 
@@ -84,15 +86,6 @@ class ReportDesign:
     def fill_color(self, hex_color: str, fill_type: str, cell_coordinate: str):
         self.sheet[cell_coordinate].fill = PatternFill(start_color=hex_color, end_color=hex_color, fill_type=fill_type)
 
-    def design_sla_table(self):
-        pass
-        # header_text = {"B8": "Destination", "C8": "Past SLA"}
-        #
-        # for key, values in header_text.items():
-        #     self.sheet[key].value = values
-        #
-        #
-        # self.workbook.save(self.temp_file)
 
     def open_temp_file(self):
         temp_name = self.temp_file
@@ -102,7 +95,7 @@ class ReportDesign:
     def create_report(self):
         self.open_temp_file()
         self.header_design()
-        # self.design_sla_table()
+        self.sla_table_design()
 
     def create_excel_file(self):
         # Move Temp File for user to see
