@@ -264,7 +264,8 @@ class TableData:
 
         for i in range(len(dataframe["Recvd Date"])):
             delta = dataframe.at[i, "Recvd Date"] - today_date
-            self.table_data.at[i, "Days"] = abs(delta.days)
+            # Added +1 to include today's date.
+            self.table_data.at[i, "Days"] = abs(delta.days) + 1
 
         self.drop_columns(dataframe, ["Recvd Date"])
 
