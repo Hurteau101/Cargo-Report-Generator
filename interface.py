@@ -246,8 +246,8 @@ class CargoInterface(ctk.CTk):
             waybill_report = TableData(waybill_data)
             waybill_report.day_sorter = setting_day
             waybill_report.create_starting_table()
-            waybill_report.sla_report_creation()
-            waybill_report.bot_report_creation()
+            waybill_report.sla_report_creation_data()
+            waybill_report.bot_report_creation_data()
 
             design = ReportDesign(sla_data=waybill_report.sla_data, bot_data=waybill_report.table_data)
             design.insert_data_to_excel()

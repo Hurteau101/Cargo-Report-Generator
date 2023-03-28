@@ -9,6 +9,7 @@ class TableData:
         self.sla_data = None
         # This attribute is used to filter the rows by a certain day.
         self.day_sorter = 0
+        self.sla_weight_sum = 0
 
     @classmethod
     def export_to_excel(cls, dataframe: pd.DataFrame, excel_name: str):
@@ -45,7 +46,6 @@ class TableData:
         :return: None
         """
         dataframe.drop(column_names, axis=1, inplace=True)
-
 
     @classmethod
     def insert_column(cls, dataframe: pd.DataFrame, last_column: bool, column_name: str,
@@ -124,7 +124,7 @@ class TableData:
             4: "AWB",
             5: "Goods Desc.",
             6: "Cosignee",
-            10: "Peice Count",
+            10: "Piece Count",
             11: "Weight",
             12: "Hours Remaining",
             15: "Recvd Date",
@@ -133,20 +133,22 @@ class TableData:
         self.table_data = self.modify_column_string(self.table_data, column_name="Route", replace_string="WPG = ",
                                                     replace_string_with="")
 
-    def sla_report_creation(self):
+    def sla_report_creation_data(self):
         """
         Calls all methods that are responsible for creating the SLA Report. Such methods are getting only
         keeping the rows that are in the negatives in "Hours Remaining" column (get_past_sla_rows),
-        grouping together all common alternative destinations (add_common_destinations) and sorting the SLA dictionary
-        to show the highest value first (sort_dictionary).
+        grouping together all common alternative destinations (add_common_destinations), sorting the SLA dictionary
+        to show the highest value first (sort_dictionary) and lastly adding up all the sla_data values to get a total
+        weight.
         :return: None
         """
-        sla_dataframe = self.get_past_sla_rows()
-        self.create_past_sla_dict(dataframe=sla_dataframe)
-        self.add_common_destinations()
-        self.sort_dictionary()
+        sla_dataframe = self._get_past_sla_rows()
+        self._create_past_sla_dict(dataframe=sla_dataframe)
+        self._add_common_destinations()
+        self._sort_dictionary()
+        self._get_sla_weight_sum()
 
-    def get_past_sla_rows(self):
+    def _get_past_sla_rows(self):
         """
         Deletes any row in the DataFrame that contains "-" in the Days Column. This is to ensure that only past
         SLA rows are shown.
@@ -158,7 +160,7 @@ class TableData:
         sla_report = self.table_data.drop(self.table_data[~self.table_data["Hours Remaining"].str.contains('-')].index)
         return sla_report
 
-    def create_past_sla_dict(self, dataframe: pd.DataFrame):
+    def _create_past_sla_dict(self, dataframe: pd.DataFrame):
         """
         Store all the values in the "Route" column into a dictionary with the name of the "Route" being the key and then
         adding all the weight values that are associated with that route for the value key. Method uses the group
@@ -171,7 +173,7 @@ class TableData:
         self.convert_column_to_datatype(dataframe=dataframe, column_name="Weight", data_type="int")
         self.sla_data = dataframe.groupby('Route')['Weight'].sum().to_dict()
 
-    def add_common_destinations(self):
+    def _add_common_destinations(self):
         """
         Add Common Destination Locations together. There are 2 main destinations that have common alternate
         destinations: YST/WGK Locations - YST and WGK | YTH Locations - ZAC, XLB, YTH, XTL, YBT and XSI
@@ -195,7 +197,7 @@ class TableData:
                                           for destination in st_theresa_common if destination in self.sla_data)
             self.sla_data["YST/WGK Locations"] = st_theresa_location_sum
 
-    def sort_dictionary(self):
+    def _sort_dictionary(self):
         """
         Sort SLA Data Dictionary by the destination with the highest number.
         :return: None
@@ -205,7 +207,7 @@ class TableData:
         # the keys would be [0]
         self.sla_data = dict(sorted(self.sla_data.items(), key=lambda x: x[1], reverse=True))
 
-    def bot_report_creation(self):
+    def bot_report_creation_data(self):
         """
         Calls all methods that are responsible for creating the Bot Report. Such methods are reformatting the Bot Report
         table (reformat_bot_report_table), only showing rows that are greater than the day_sorter value (sort_by_days),
@@ -213,11 +215,11 @@ class TableData:
 
         :return: None
         """
-        self.reformat_bot_report_table()
-        self.sort_by_days(dataframe=self.table_data)
+        self._reformat_bot_report_table()
+        self._sort_by_days(dataframe=self.table_data)
         self.sort_column(dataframe=self.table_data, column_name="Days", ascending=False)
 
-    def reformat_bot_report_table(self):
+    def _reformat_bot_report_table(self):
         """
         Reformat the Bot Report Table by dropping "Hour Remaining" column, dropping any values that are empty in the
         "Recvd Date", dropping the first row as it contains nothing but a subheader. Also inserts necessary columns for
@@ -226,7 +228,7 @@ class TableData:
         """
         self.drop_columns(self.table_data, column_names=["Hours Remaining"])
         self.table_data.drop(self.table_data.index[0], inplace=True)
-        self.drop_empty_values(self.table_data, column_name=["Recvd Date"])
+        self._drop_empty_values(self.table_data, column_name=["Recvd Date"])
         # Reset index, due to dropped columns.
         self.table_data = self.table_data.reset_index(drop=True)
 
@@ -234,10 +236,10 @@ class TableData:
         self.table_data = self.insert_column(self.table_data, last_column=True, column_name="Remarks")
         self.table_data = self.insert_column(self.table_data, last_column=False, column_name="Days", column_position=6)
 
-        self.add_day_values(self.table_data)
+        self._add_day_values(self.table_data)
 
     @classmethod
-    def drop_empty_values(cls, dataframe: pd.DataFrame, column_name: list):
+    def _drop_empty_values(cls, dataframe: pd.DataFrame, column_name: list):
         """
         Drop empty values that are in a column.
         :param dataframe: The DataFrame to modify.
@@ -246,11 +248,11 @@ class TableData:
         """
         dataframe.dropna(subset=column_name, inplace=True)
 
-    def add_day_values(self, dataframe: pd.DataFrame):
+    def _add_day_values(self, dataframe: pd.DataFrame):
         """
         Get the current date and convert it to a Timestamp Object. The method will loop through the "Recvd Date"
         column and take the "Recvd Date" value and subtract it with today's date. This will give us how many days
-        a peice of cargo has been in the system. It will then input that new value into the "Days" column. The value
+        a piece of cargo has been in the system. It will then input that new value into the "Days" column. The value
         will be negative, so we use Abs to convert it to a positive integer. Lastly drop the "Recvd" Column, as it
         won't be used anymore.
         :param dataframe: The DataFrame to modify.
@@ -258,7 +260,7 @@ class TableData:
         """
 
         # Convert "Recvd Date" to Timestamp.
-        self.modify_recd_column()
+        self._modify_recd_column()
 
         today_date = pd.Timestamp(date.today())
 
@@ -269,7 +271,7 @@ class TableData:
 
         self.drop_columns(dataframe, ["Recvd Date"])
 
-    def modify_recd_column(self):
+    def _modify_recd_column(self):
         """
         This converts the "Recvd Date" Column to a Timestamp object.
         :return: None
@@ -277,7 +279,7 @@ class TableData:
         self.table_data = self.convert_column_to_datatype(dataframe=self.table_data, column_name="Recvd Date",
                                                           data_type="datetime64[ns]")
 
-    def sort_by_days(self, dataframe: pd.DataFrame):
+    def _sort_by_days(self, dataframe: pd.DataFrame):
         """Remove any rows that are less than the value of day_sort. The day_sorter will contain the value
          from the SLA/Bot Report Setting (Days) entry box. This will sort the SLA/Bot Report to ensure only cargo
          that has been here passed a certain amount of days is shown.
@@ -285,3 +287,10 @@ class TableData:
          """
 
         self.table_data = dataframe[dataframe["Days"] >= self.day_sorter]
+
+    def _get_sla_weight_sum(self):
+        """
+        Add up all the values in the sla_dict. This will get the total weight of all cargo that is past SLA.
+        :return: None
+        """
+        self.sla_weight_sum = sum(self.sla_data.values())
