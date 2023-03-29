@@ -1,5 +1,7 @@
+from datetime import date
 import os
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
+from openpyxl.drawing.image import Image
 from openpyxl.utils import get_column_letter
 from openpyxl import load_workbook
 import openpyxl
@@ -18,6 +20,7 @@ class ReportDesign:
         self.temp_file = None
         self.workbook = None
         self.sheet = None
+        self.excel_name = None
 
     def insert_data_to_excel(self):
         """
@@ -39,7 +42,7 @@ class ReportDesign:
                 sla_dataframe.to_excel(writer, startrow=9 - 1, startcol=2 - 1, header=False)
                 bot_dataframe.to_excel(writer, startrow=8 - 1, startcol=5 - 1, index=False)
 
-    def header_design(self):
+    def _header_design(self):
         """
         This method is responsible for designing ALL header designs in the Excel Report. There are 2 different
         reports in the SLA/Bot Report (SLA Report and Bot Report). It will create the SLA Headers and then loop
@@ -51,15 +54,15 @@ class ReportDesign:
         self.sheet["C8"].value = "Past SLA"
 
         bot_headers = [key for key in self.bot_data]
-        report_headers = self.get_cell_coordinates(bot_headers)
+        report_headers = self._get_cell_coordinates(bot_headers)
         report_headers.update(sla_header)
 
         for cell_cord in report_headers.keys():
-            self.fill_color(cell_coordinate=cell_cord, hex_color='4285f4')
-            self.change_font(cell_coordinate=cell_cord, bold=True)
-            self.create_full_border(cell_coordinate=cell_cord)
+            self._fill_color(cell_coordinate=cell_cord, hex_color='4285f4')
+            self._change_font(cell_coordinate=cell_cord, bold=True)
+            self._create_full_border(cell_coordinate=cell_cord)
 
-    def get_cell_coordinates(self, cell_text: list):
+    def _get_cell_coordinates(self, cell_text: list):
         """
         This will get the cell coordinates based on text. It will loop through the Excel document and find the text
         that matches the passed in cell_text dictionary. It will then create a dictionary where the key is the
@@ -76,13 +79,13 @@ class ReportDesign:
 
         return coordinate_dict
 
-    def sla_table_design(self):
+    def _sla_table_design(self):
         """
         This method is responsible for designing the SLA Table. Such things as setting every second row as light blue,
         setting borders around the table, changing the font and adding the total weight row to the SLA Table.
         :return: None
         """
-        total_weight_row_number = self.add_total_weight_to_sla_table()
+        total_weight_row_number = self._add_total_weight_to_sla_table()
 
         # Start at row 9 and every second row, it will color those cells light blue.
         for row in range(9, len(self.sla_data) + 9):
@@ -90,16 +93,16 @@ class ReportDesign:
                 sla_data_cell_cord = f"{col}{row}"
                 total_weight_cell_cord = f"{col}{total_weight_row_number}"
                 if row % 2 == 0:
-                    self.fill_color(hex_color="e8f0fe", cell_coordinate=sla_data_cell_cord)
+                    self._fill_color(hex_color="e8f0fe", cell_coordinate=sla_data_cell_cord)
 
-                self.create_full_border(cell_coordinate=sla_data_cell_cord, border_type="thin")
-                self.create_full_border(cell_coordinate=total_weight_cell_cord, border_type="thin")
-                self.change_font(cell_coordinate=total_weight_cell_cord, bold=True)
-                self.fill_color(cell_coordinate=total_weight_cell_cord, hex_color='4285f4')
+                self._create_full_border(cell_coordinate=sla_data_cell_cord, border_type="thin")
+                self._create_full_border(cell_coordinate=total_weight_cell_cord, border_type="thin")
+                self._change_font(cell_coordinate=total_weight_cell_cord, bold=True)
+                self._fill_color(cell_coordinate=total_weight_cell_cord, hex_color='4285f4')
 
-        self.add_total_weight_to_sla_table()
+        self._add_total_weight_to_sla_table()
 
-    def add_total_weight_to_sla_table(self):
+    def _add_total_weight_to_sla_table(self):
         """
         This method will get the length of the sla_data dictionary. This will tell us how many rows there will be. It
         then adds 10 to that, to allow an empty row between the sla_data and the total weight row. The value 10 is set
@@ -115,7 +118,62 @@ class ReportDesign:
 
         return total_sla_rows
 
-    def all_cells_style(self, horizontal_alignment: str = "center"):
+    def _add_color_reference_cells(self):
+        """
+        This Method will add 4 cells on top of the Bot Report Table. The cells are just responsible for displaying
+        color references. (Ex. F8 will contain "Going Today" with a fill color of green. Any cell in the Bot Report
+        table which is colored green, means that cargo will be going today).
+        :return: None
+        """
+        reference_data = {"E3": "Reference", "F3": "Going Today", "G3": "To Be Cleared", "H3": "On Hold"}
+        for count, (cell_cord, cell_text) in enumerate(reference_data.items()):
+            self.sheet[cell_cord].value = cell_text
+            self._create_full_border(cell_coordinate=cell_cord)
+            if count == 0:
+                self._change_font(cell_coordinate=cell_cord, bold=True)
+            else:
+                self._change_font(cell_coordinate=cell_cord, bold=True, hex_color="000000")
+
+        # reference_data contains the cell coordinates as the keys. Convert it to a list to access those keys.
+        reference_data_keys = list(reference_data.keys())
+        self._fill_color(cell_coordinate=reference_data_keys[0], hex_color="4285f4")
+        self._fill_color(cell_coordinate=reference_data_keys[1], hex_color="00ff00")
+        self._fill_color(cell_coordinate=reference_data_keys[2], hex_color="ffff00")
+        self._fill_color(cell_coordinate=reference_data_keys[3], hex_color="ff0000")
+
+    def _add_days_top_pri_table(self):
+        day_pri_values = {"E5": "DAYS", "E6": "-8", "H5": "Days TOP PRI", "H6": "29"}
+
+        for cell_cord, cell_text in day_pri_values.items():
+            self.sheet[cell_cord].value = cell_text
+            self._change_font(cell_coordinate=cell_cord, bold=True)
+            self._fill_color(cell_coordinate=cell_cord, hex_color="7A7A7A")
+
+        self._fill_color(cell_coordinate="F5", hex_color="7A7A7A")
+        self.sheet.merge_cells("F5:G6")
+
+    def _add_date(self):
+        today = date.today()
+        formatted_date = today.strftime("%B %d, %Y")
+        self.sheet["L5"].value = formatted_date
+        self._change_font(cell_coordinate="L5", size=18, hex_color="000000")
+        self.sheet["L5"].alignment = Alignment(vertical="center")
+        self.sheet.merge_cells("L5:M6")
+
+    def _add_logo(self):
+        img = Image("logo.png")
+        self.sheet.add_image(img, 'B2')
+
+    def _excel_settings(self, save_name_as: str, sheet_title: str, show_gridlines: bool = False):
+        self.excel_name = save_name_as
+        self.sheet.title = sheet_title
+
+        if show_gridlines:
+            self.sheet.sheet_view.showGridLines = True
+        else:
+            self.sheet.sheet_view.showGridLines = False
+
+    def _all_cells_style(self, horizontal_alignment: str = "center"):
         """
         Method is responsible for changing the style of ALL cells in the Excel document.
         :param horizontal_alignment: Set the horizontal alignment for all cells. (Default: "center")
@@ -125,7 +183,7 @@ class ReportDesign:
             for cell in row:
                 cell.alignment = Alignment(horizontal=horizontal_alignment)
 
-    def set_columns_widths(self, column_custom_width: dict):
+    def _set_columns_widths(self, column_custom_width: dict):
         """
         Responsible for setting the column widths of the specified columns.
 
@@ -143,10 +201,8 @@ class ReportDesign:
             else:
                 self.sheet.column_dimensions[column_name].width = width
 
-
-
     @classmethod
-    def get_custom_column_widths(cls):
+    def _get_custom_column_widths(cls):
         """
         Set the specified columns in the Excel Document by a specific width. This will be used in the all_cells_style
         method when you pass in a column_custom_width argument.
@@ -157,18 +213,18 @@ class ReportDesign:
             "C": 15,
             "E": 13,
             "F": 17,
-            "G": 25,
-            "H": 50,
-            "I": 13,
-            "J": 13,
-            "K": 13,
+            "G": 17,
+            "H": 17,
+            "I": 17,
+            "J": 17,
+            "K": 17,
             "L": 17,
-            "M": 40,
+            "M": 17,
         }
 
         return custom_column_width
 
-    def get_columns_with_text(self):
+    def _get_columns_with_text(self):
         """
         Get a list of columns that contain text (Ex. A, B, C)
         :return: Returns all columns that contain text.
@@ -179,7 +235,7 @@ class ReportDesign:
 
         return column_with_text
 
-    def create_full_border(self, cell_coordinate: str, border_type: str = 'thin'):
+    def _create_full_border(self, cell_coordinate: str, border_type: str = 'thin'):
         """
         Creates a border around a specific cell.
         :param cell_coordinate: Coordinate of the cell you want the border around. (Ex. E10)
@@ -189,8 +245,8 @@ class ReportDesign:
         self.sheet[cell_coordinate].border = Border(left=Side(border_type), right=Side(border_type),
                                                     top=Side(border_type), bottom=Side(border_type))
 
-    def change_font(self, cell_coordinate: str, font_name: str = "Calibri", size: int = 11, bold: bool = False,
-                    hex_color: str = "ffffff"):
+    def _change_font(self, cell_coordinate: str, font_name: str = "Calibri", size: int = 11, bold: bool = False,
+                     hex_color: str = "ffffff"):
         """
         Change the font of a specific cell.
         :param cell_coordinate: Coordinate of the cell you want to change the font for. (Ex. E10)
@@ -203,7 +259,7 @@ class ReportDesign:
         """
         self.sheet[cell_coordinate].font = Font(name=font_name, size=size, bold=bold, color=hex_color)
 
-    def fill_color(self, cell_coordinate: str, hex_color: str, fill_type: str = "solid"):
+    def _fill_color(self, cell_coordinate: str, hex_color: str, fill_type: str = "solid"):
         """
         Change the fill color of a specific cell.
         :param cell_coordinate: Coordinate of the cell you want to fill. (Ex. E10)
@@ -213,7 +269,7 @@ class ReportDesign:
         """
         self.sheet[cell_coordinate].fill = PatternFill(start_color=hex_color, end_color=hex_color, fill_type=fill_type)
 
-    def open_temp_file(self):
+    def _open_temp_file(self):
         """
         Opens the temporary Excel file. The temporary Excel file is first created in the insert_data_to_excel method.
         We then can open it to style the Excel File. Using a temporary file to avoid the user from opening the file
@@ -230,14 +286,19 @@ class ReportDesign:
         Method is responsible for opening the temp file and creating all designs of the Excel document.
         :return:
         """
-        self.open_temp_file()
-        self.all_cells_style(horizontal_alignment="center")
-        self.header_design()
-        self.sla_table_design()
-        self.set_columns_widths(column_custom_width=self.get_custom_column_widths())
-        self.save_temp_file()
+        self._open_temp_file()
+        self._header_design()
+        self._sla_table_design()
+        self._set_columns_widths(column_custom_width=self._get_custom_column_widths())
+        self._add_color_reference_cells()
+        self._add_days_top_pri_table()
+        self._add_date()
+        self._add_logo()
+        self._all_cells_style(horizontal_alignment="center")
+        self._excel_settings(save_name_as="output.xlsx", sheet_title="Cargo Report", show_gridlines=False)
+        self._save_temp_file()
 
-    def save_temp_file(self):
+    def _save_temp_file(self):
         self.workbook.save(self.temp_file)
 
     def create_excel_file(self):
@@ -247,4 +308,4 @@ class ReportDesign:
         :return: None
         """
         # Move Temp File for user to see
-        shutil.move(self.temp_file, "output.xlsx")
+        shutil.move(self.temp_file, self.excel_name)
