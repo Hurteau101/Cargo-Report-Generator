@@ -12,9 +12,11 @@ from utils import type_check
 
 
 class ReportDesign:
-    def __init__(self, sla_data, bot_data, total_sla_weight):
+    def __init__(self, sla_data, bot_data, total_sla_weight, day_sorter, highest_day):
         self.sla_data = sla_data
         self.bot_data = bot_data
+        self.day_sorter = day_sorter
+        self.highest_day = highest_day
         self.total_sla_weight = total_sla_weight
         # Create Temp File Attribute.
         self.temp_file = None
@@ -142,7 +144,7 @@ class ReportDesign:
         self._fill_color(cell_coordinate=reference_data_keys[3], hex_color="ff0000")
 
     def _add_days_top_pri_table(self):
-        day_pri_values = {"E5": "DAYS", "E6": "-8", "H5": "Days TOP PRI", "H6": "29"}
+        day_pri_values = {"E5": "DAYS", "E6": self.day_sorter, "H5": "Days TOP PRI", "H6": self.highest_day}
 
         for cell_cord, cell_text in day_pri_values.items():
             self.sheet[cell_cord].value = cell_text

@@ -249,8 +249,11 @@ class CargoInterface(ctk.CTk):
             waybill_report.sla_report_creation_data()
             waybill_report.bot_report_creation_data()
 
-            design = ReportDesign(sla_data=waybill_report.sla_data, bot_data=waybill_report.table_data,
-                                  total_sla_weight=waybill_report.sla_weight_sum)
+            design = ReportDesign(sla_data=waybill_report.sla_data,
+                                  bot_data=waybill_report.table_data,
+                                  total_sla_weight=waybill_report.sla_weight_sum,
+                                  day_sorter=waybill_report.day_sorter,
+                                  highest_day=waybill_report.highest_day)
             design.insert_data_to_excel()
             design.create_report()
             design.create_excel_file()

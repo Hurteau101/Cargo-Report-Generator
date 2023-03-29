@@ -10,6 +10,7 @@ class TableData:
         # This attribute is used to filter the rows by a certain day.
         self.day_sorter = 0
         self.sla_weight_sum = 0
+        self.highest_day = 0
 
     @classmethod
     def export_to_excel(cls, dataframe: pd.DataFrame, excel_name: str):
@@ -223,6 +224,19 @@ class TableData:
                                                           data_type='int')
         self.table_data = self.convert_column_to_datatype(dataframe=self.table_data, column_name="Weight",
                                                           data_type='int')
+        self.get_highest_day(dataframe=self.table_data)
+
+    def get_highest_day(self, dataframe: pd.DataFrame):
+        """
+        Check if the "Days" column is empty. If it is, set highest_day to N/A (no values in row). Otherwise,
+        set highest_day = to the highest value in the "Days" column. 
+        :param dataframe: The DataFrame to check.
+        :return:
+        """
+        if len(dataframe["Days"]) == 0:
+            self.highest_day = "N/A"
+        else:
+            self.highest_day = dataframe["Days"].max()
 
     def _reformat_bot_report_table(self):
         """
