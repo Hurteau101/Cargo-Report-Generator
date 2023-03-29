@@ -243,6 +243,8 @@ class CargoInterface(ctk.CTk):
                 table_data, day_setting = self.webpage.fill_in_waybills_form()
             except TimeoutException as exception:
                 self.way_bill_form_error_handling(exception)
+            except NoSuchElementException as exception:
+                self.way_bill_form_error_handling(exception)
             else:
                 waybill_data = self.get_sla_bot_data(table_data, day_setting)
                 self.create_cargo_report(waybill_data)
@@ -261,6 +263,9 @@ class CargoInterface(ctk.CTk):
         if isinstance(exception, TimeoutException):
             self.display_error("No Data", "No Data was found. Try checking your 'To Airport' or/and 'From Airport' in"
                                           "the setting window.")
+        elif isinstance(exception, NoSuchElementException):
+            self.display_error("No Data", "No Data was found. Double check your 'To Airport' or/and 'From Airport' and"
+                                          " ensure its a proper airport code. ")
 
     def check_conditions(self):
         """Check all conditions to ensure successful script run"""

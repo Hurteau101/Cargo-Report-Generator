@@ -118,6 +118,7 @@ class ReportDesign:
                 self._create_full_border(cell_coordinate=sla_data_cell_cord, border_type="thin")
                 self._create_full_border(cell_coordinate=total_weight_cell_cord, border_type="thin")
                 self._change_font(cell_coordinate=total_weight_cell_cord, bold=True)
+                self._change_font(cell_coordinate=sla_data_cell_cord, bold=False, hex_color="000000")
                 self._fill_color(cell_coordinate=total_weight_cell_cord, hex_color='4285f4')
 
         self._add_total_weight_to_sla_table()
