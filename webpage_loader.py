@@ -51,6 +51,7 @@ class CargoWebpage:
         :param options: The options will put Selenium into headless mode.
         Valid option is WebpageSettings.headless_chrome. (ex. options = WebpageSettings.headless_chrome())
         """
+
         service = Service("chromedriver.exe")
         self.driver = webdriver.Chrome(service=service, options=options)
 

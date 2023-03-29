@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from selenium.common import NoSuchElementException, TimeoutException
 
 from report_design import ReportDesign
 from table_data import TableData
@@ -237,31 +238,57 @@ class CargoInterface(ctk.CTk):
                         disable_widget=False, switch_text="Script Running")
         self.start_selenium()
 
-        # Check all conditions. This will make sure nothing failed before making it to the "Airway bills to Ship Report"
+        if self.check_conditions():
+            try:
+                table_data, day_setting = self.webpage.fill_in_waybills_form()
+            except TimeoutException as exception:
+                self.way_bill_form_error_handling(exception)
+            else:
+                waybill_data = self.get_sla_bot_data(table_data, day_setting)
+                self.create_cargo_report(waybill_data)
+
+                self.set_switch(status=False, switch_widget=self.script_switch, switch_str_var=self.script_running_var,
+                                disable_widget=True, switch_text="Script Not Running")
+        else:
+            self.webpage.quit_selenium()
+
+    def way_bill_form_error_handling(self, exception):
+        self.webpage.quit_selenium()
+
+        self.set_switch(status=False, switch_widget=self.script_switch, switch_str_var=self.script_running_var,
+                        disable_widget=True, switch_text="Script Not Running")
+
+        if isinstance(exception, TimeoutException):
+            self.display_error("No Data", "No Data was found. Try checking your 'To Airport' or/and 'From Airport' in"
+                                          "the setting window.")
+
+    def check_conditions(self):
+        """Check all conditions to ensure successful script run"""
         loading_waybill_page = all((self.starting_webpage_load(),
                                     self.login_success(),
                                     self.webpage.waybills_to_ship_page(self.webpage_data.get_waybill_url())))
-        if loading_waybill_page:
-            waybill_data, setting_day = self.webpage.fill_in_waybills_form()
-            waybill_report = TableData(waybill_data)
-            waybill_report.day_sorter = setting_day
-            waybill_report.create_starting_table()
-            waybill_report.sla_report_creation_data()
-            waybill_report.bot_report_creation_data()
+        return loading_waybill_page
 
-            design = ReportDesign(sla_data=waybill_report.sla_data,
-                                  bot_data=waybill_report.table_data,
-                                  total_sla_weight=waybill_report.sla_weight_sum,
-                                  day_sorter=waybill_report.day_sorter,
-                                  highest_day=waybill_report.highest_day)
-            design.insert_data_to_excel()
-            design.create_report()
-            design.create_excel_file()
+    @classmethod
+    def get_sla_bot_data(cls, waybill_data, day_setting):
+        """Extract data from Waybills to Ship Report Table"""
+        waybill_report = TableData(waybill_data)
+        waybill_report.day_sorter = day_setting
+        waybill_report.create_starting_table()
+        waybill_report.sla_report_creation_data()
+        waybill_report.bot_report_creation_data()
+        return waybill_report
 
-            self.set_switch(status=False, switch_widget=self.script_switch, switch_str_var=self.script_running_var,
-                            disable_widget=True, switch_text="Script Not Running")
-        else:
-            self.webpage.quit_selenium()
+    @classmethod
+    def create_cargo_report(cls, waybill_report):
+        design = ReportDesign(sla_data=waybill_report.sla_data,
+                              bot_data=waybill_report.table_data,
+                              total_sla_weight=waybill_report.sla_weight_sum,
+                              day_sorter=waybill_report.day_sorter,
+                              highest_day=waybill_report.highest_day)
+        design.insert_data_to_excel()
+        design.create_report()
+        design.create_excel_file()
 
     def start_selenium(self):
         """
@@ -290,7 +317,7 @@ class CargoInterface(ctk.CTk):
         """
         # Check if starting webpage is loaded correctly. If it's not add a popup.
         if not self.webpage.check_webpage_loaded("//input[@id='UserName']", wait_time=5):
-            messagebox.showerror("Webpage Load Error", "The webpage did not load correctly")
+            self.display_error("Webpage Load Error", "The webpage did not load correctly")
             return False
         return True
 
@@ -308,7 +335,7 @@ class CargoInterface(ctk.CTk):
 
         # If login was unsuccessful provide popup.
         if not self.webpage.check_login():
-            messagebox.showerror("Login Unsuccessful", "The login was unsuccessful")
+            self.display_error("Login Unsuccessful", "The login was unsuccessful")
             return False
         return True
 
