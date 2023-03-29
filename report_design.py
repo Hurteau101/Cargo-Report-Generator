@@ -12,6 +12,23 @@ from utils import type_check
 
 
 class ReportDesign:
+    """
+        A class for designing the Excel SLA/Bot Report and saving it as an Excel File.
+        Class Utilizes the OpenPyxl Library.
+
+       Main Attributes:
+           - sla_data - All SLA data to be used in the Excel File.
+           - bot_data - All Bot data to be used in the Excel File.
+           - temp_file - A temporary file to be used to design the Excel file. A temporary file is used, to prevent
+           the user from opening the report until all designs are completed.
+
+       Main Operations:
+           - insert_data_to_excel() - Inserts all SLA and Bot Data (Dictionary) into a temporary Excel file.
+           - create_report() - Opens the temporary Excel File and creates all the designs necessary to create
+           the Cargo Report.
+           - _excel_settings() - Sets the Excel Settings, such as the name of the file, name of the sheet and if you
+           want the Excel sheet to display gridlines.
+       """
     def __init__(self, sla_data, bot_data, total_sla_weight, day_sorter, highest_day):
         self.sla_data = sla_data
         self.bot_data = bot_data
@@ -144,6 +161,14 @@ class ReportDesign:
         self._fill_color(cell_coordinate=reference_data_keys[3], hex_color="ff0000")
 
     def _add_days_top_pri_table(self):
+        """
+        Create the top header for Days and Top Priority. Below the Days Text, it will get the value for day_sorter.
+        The day sorter is the value in the SLA/Bot Report setting which is used to filter data by the number of days
+        cargo has been in the warehouse. Below the Days TOP Pri, is the highest value in the "Days" column. All data
+        is obtained from the table_data class. Method also formats this small table to the approriate colors, borders
+        and font.
+        :return: None
+        """
         day_pri_values = {"E5": "DAYS", "E6": self.day_sorter, "H5": "Days TOP PRI", "H6": self.highest_day}
 
         for cell_cord, cell_text in day_pri_values.items():
@@ -155,6 +180,10 @@ class ReportDesign:
         self.sheet.merge_cells("F5:G6")
 
     def _add_date(self):
+        """
+        Add the current date to the Cargo Report.
+        :return: None
+        """
         today = date.today()
         formatted_date = today.strftime("%B %d, %Y")
         self.sheet["L5"].value = formatted_date
@@ -163,10 +192,23 @@ class ReportDesign:
         self.sheet.merge_cells("L5:M6")
 
     def _add_logo(self):
+        """
+        Add the logo to the Cargo Report.
+        :return: None
+        """
         img = Image("logo.png")
         self.sheet.add_image(img, 'B2')
 
     def _excel_settings(self, save_name_as: str, sheet_title: str, show_gridlines: bool = False):
+        """
+        Set the Excel settings, such as the name of the file, the name of the sheet and if you want the Report
+        to show gridlines.
+        :param save_name_as: Name of the Excel File.
+        :param sheet_title: Name of the Excel Sheet.
+        :param show_gridlines: If you want to show the gridlines on Excel. True = Yes | False = No
+        (Default value: False)
+        :return: None
+        """
         self.excel_name = save_name_as
         self.sheet.title = sheet_title
 

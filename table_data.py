@@ -3,6 +3,20 @@ from datetime import date
 
 
 class TableData:
+    """
+        A class for extracting data from an HTML table and setting values to be used in other classes.
+        Class Utilizes the Panda Library.
+
+       Main Attributes:
+           - table_data - The main table. Reads an HTML table that is passed in via the constructor.
+           - sla_data - All data that is related to the SLA Table portion
+
+       Main Operations:
+           - create_starting_table - Creates the main table data and updates it by dropping necessary columns, renaming
+           columns, and dropping necessary text.
+           - sla_report_creation_data - Calls all methods that are responsible for creating the SLA Report Data.
+           - bot_report_creation_data - Calls all methods that are responsible for creating the Bot Report Data.
+       """
     def __init__(self, waybill_table):
         # TODO: Uncomment once ready to test fully.
         self.table_data = pd.read_html(waybill_table)[0]
@@ -113,7 +127,7 @@ class TableData:
 
     def create_starting_table(self):
         """
-        Reformat the SLA/Bot Report starting table, by dropping unnecessary columns, renaming the header rows and
+        Reformat the SLA/Bot Report starting table data, by dropping unnecessary columns, renaming the header rows and
         removing any value in the "Route" column that starts with "WPG = ".
         :return: None
         """
@@ -136,7 +150,7 @@ class TableData:
 
     def sla_report_creation_data(self):
         """
-        Calls all methods that are responsible for creating the SLA Report. Such methods are getting only
+        Calls all methods that are responsible for creating the SLA Report Data. Such methods are getting only
         keeping the rows that are in the negatives in "Hours Remaining" column (get_past_sla_rows),
         grouping together all common alternative destinations (add_common_destinations), sorting the SLA dictionary
         to show the highest value first (sort_dictionary) and lastly adding up all the sla_data values to get a total
@@ -210,7 +224,7 @@ class TableData:
 
     def bot_report_creation_data(self):
         """
-        Calls all methods that are responsible for creating the Bot Report. Such methods are reformatting the Bot Report
+        Calls all methods that are responsible for creating the Bot Report Data. Such methods are reformatting the Bot Report
         table (reformat_bot_report_table), only showing rows that are greater than the day_sorter value (sort_by_days),
         and sorting the columns to display the highest value in "Days" first (sort_column). Also changes the
         "Piece Count" and "Weight" columns to int, as they are originally set as strings.
@@ -224,12 +238,12 @@ class TableData:
                                                           data_type='int')
         self.table_data = self.convert_column_to_datatype(dataframe=self.table_data, column_name="Weight",
                                                           data_type='int')
-        self.get_highest_day(dataframe=self.table_data)
+        self._get_highest_day(dataframe=self.table_data)
 
-    def get_highest_day(self, dataframe: pd.DataFrame):
+    def _get_highest_day(self, dataframe: pd.DataFrame):
         """
         Check if the "Days" column is empty. If it is, set highest_day to N/A (no values in row). Otherwise,
-        set highest_day = to the highest value in the "Days" column. 
+        set highest_day = to the highest value in the "Days" column.
         :param dataframe: The DataFrame to check.
         :return:
         """
