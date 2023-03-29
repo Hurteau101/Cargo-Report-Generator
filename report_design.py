@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 import os
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
 from openpyxl.drawing.image import Image
@@ -40,6 +40,7 @@ class ReportDesign:
         self.workbook = None
         self.sheet = None
         self.excel_name = None
+        self.report_folder_path = None
 
     def insert_data_to_excel(self):
         """
@@ -199,6 +200,28 @@ class ReportDesign:
         img = Image("logo.png")
         self.sheet.add_image(img, 'B2')
 
+    def get_date_time(self):
+        """
+        Get the current date and time. This method is used if you want to save the Cargo Report by the date and time.
+        (Ex. Cargo Report on February 28, 2023 - 1236AM".
+        :return:
+        """
+        today_date = datetime.today()
+        current_date_time = today_date.strftime("%B %d, %Y - %#I%M%p")
+        return current_date_time
+
+    def _create_sla_bot_report_folder(self, folder_name):
+        """
+        Creates a folder in the current working directory based on the folder_name argument. It will check if the
+        folder doesn't exist. If it doesn't, it will create a folder.
+        :param folder_name:
+        :return:
+        """
+        current_director = os.getcwd()
+        self.report_folder_path = os.path.join(current_director, folder_name)
+        if not os.path.isdir(folder_name):
+            os.mkdir(self.report_folder_path)
+
     def _excel_settings(self, save_name_as: str, sheet_title: str, show_gridlines: bool = False):
         """
         Set the Excel settings, such as the name of the file, the name of the sheet and if you want the Report
@@ -339,7 +362,8 @@ class ReportDesign:
         self._add_date()
         self._add_logo()
         self._all_cells_style(horizontal_alignment="center")
-        self._excel_settings(save_name_as="output.xlsx", sheet_title="Cargo Report", show_gridlines=False)
+        self._excel_settings(save_name_as=f"Cargo Report on {self.get_date_time()}.xlsx",
+                             sheet_title="Cargo Report", show_gridlines=False)
         self._save_temp_file()
 
     def _save_temp_file(self):
@@ -347,9 +371,12 @@ class ReportDesign:
 
     def create_excel_file(self):
         """
-        Method is responsible for moving the temporary file into the directory for the user to view/use. Use this method
+        Method is responsible for first creating a "Cargo Report" folder if it doesn't exist. It will then move
+        the temporary file into the "Cargo Report" folder for the user to view/use. Use this method
         last, as the user will be able to see the file once this method is called.
         :return: None
         """
+        self._create_sla_bot_report_folder("Cargo Report")
+
         # Move Temp File for user to see
-        shutil.move(self.temp_file, self.excel_name)
+        shutil.move(self.temp_file, f"{self.report_folder_path}/{self.excel_name}")
