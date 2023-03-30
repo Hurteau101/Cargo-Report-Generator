@@ -17,6 +17,7 @@ class TableData:
            - sla_report_creation_data - Calls all methods that are responsible for creating the SLA Report Data.
            - bot_report_creation_data - Calls all methods that are responsible for creating the Bot Report Data.
        """
+
     def __init__(self, waybill_table):
         # TODO: Uncomment once ready to test fully.
         self.table_data = pd.read_html(waybill_table)[0]
@@ -25,18 +26,6 @@ class TableData:
         self.day_sorter = 0
         self.sla_weight_sum = 0
         self.highest_day = 0
-
-    @classmethod
-    def export_to_excel(cls, dataframe: pd.DataFrame, excel_name: str):
-        """
-        Export the Dataframe to an Excel File.
-        :param dataframe: The Dataframe you want to export to an Excel File
-        :param excel_name: Pass in the name you want your Excel file to be.
-        :return: None
-        """
-        # index = False so the index will not be included in the Excel file.
-        with pd.ExcelWriter(excel_name) as writer:
-            dataframe.to_excel(writer, index=False)
 
     @classmethod
     def rename_columns(cls, dataframe: pd.DataFrame, column_names: dict) -> pd.DataFrame:
@@ -327,3 +316,14 @@ class TableData:
         :return: None
         """
         self.sla_weight_sum = sum(self.sla_data.values())
+
+    def get_awb_list(self):
+        """
+        Get a list of AWB's. Remove the portion of the AWB of "632-".
+        :return: Returns a list of AWB's to use to search for AWB's in another class.
+        """
+        self.table_data = self.modify_column_string(dataframe=self.table_data, column_name="Consignment #",
+                                                    replace_string="632-",
+                                                    replace_string_with="")
+
+        return self.table_data["Consignment #"].to_list()
