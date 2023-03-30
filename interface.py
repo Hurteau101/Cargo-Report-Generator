@@ -318,11 +318,13 @@ class CargoInterface(ctk.CTk):
                         disable_widget=False, switch_text="Script Running")
         self.start_selenium()
         if self.check_conditions():
-            self.webpage.search_awbs(self.webpage_data.get_search_awb_url())
+            self.webpage.check_search_awbs_page(self.webpage_data.get_search_awb_url())
             table_data = self.webpage.fill_in_search_form()
             home_report = TableData(table_data)
             awb_list = home_report.get_awb_list()
-            self.webpage.test()
+            home_delivery_awbs = self.webpage.search_awb(awb_list)
+            shipped, not_shipped = home_report.get_home_delivery_awbs(home_delivery_awbs)
+            
 
     def way_bill_form_error_handling(self, exception):
         self.webpage.quit_selenium()
