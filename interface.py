@@ -58,7 +58,7 @@ class CargoInterface(ctk.CTk):
         self.tabview = ctk.CTkTabview(self.main_frame)
         self.tabview.pack(expand=True, fill="both")
         self.tabview.add("SLA/Bot Report")
-        self.tabview.add("Home Delivery")
+        self.tabview.add("Home Delivery Report")
 
         # Main Frame
         self.main_frame = ctk.CTkFrame(self.tabview.tab("SLA/Bot Report"), fg_color="transparent")
@@ -89,7 +89,10 @@ class CargoInterface(ctk.CTk):
 
         self.hide_text_var = ctk.StringVar(value="off")
         self.hide_text_switch = ctk.CTkSwitch(master=self.option_frame, text="Hide Textbox",
-                                              command=self.hide_textbox, variable=self.hide_text_var, onvalue="on",
+                                              command=lambda: self.hide_textbox(self.textbox,
+                                                                                self.hide_text_switch,
+                                                                                self.webpage_btn),
+                                              variable=self.hide_text_var, onvalue="on",
                                               offvalue="off")
         self.hide_text_switch.pack()
 
@@ -99,6 +102,50 @@ class CargoInterface(ctk.CTk):
                                            onvalue="on",
                                            offvalue="off", state=ctk.DISABLED)
         self.script_switch.pack()
+
+        # Tab Home Delivery Frame
+        self.main_frame2 = ctk.CTkFrame(self.tabview.tab("Home Delivery Report"), fg_color="transparent")
+        self.main_frame2.pack()
+
+        # Home Delivery Frame
+        self.home_frame2 = ctk.CTkFrame(master=self.main_frame2, height=380)
+        self.home_frame2.pack_propagate(False)
+        self.home_frame2.pack(side="left", pady=(20, 0), padx=(0, 30))
+
+        # Option Frame
+        self.option_frame2 = ctk.CTkFrame(master=self.main_frame2, height=380)
+        self.option_frame2.pack_propagate(False)
+        self.option_frame2.pack(side="left", pady=(20, 0))
+
+        # Home Delivery Report Layout
+        self.textbox2 = ctk.CTkTextbox(master=self.home_frame2)
+        self.textbox2.pack()
+
+        self.webpage_btn2 = ctk.CTkButton(master=self.home_frame2, text="Webpage Loader",
+                                          command=self.home_delivery_report_command)
+
+        self.webpage_btn2.pack(fill="x", pady="15")
+
+        # Option Layout
+        self.option_label2 = ctk.CTkLabel(master=self.option_frame2, text="Options", font=("Helvetica", 12,
+                                                                                           "bold", "underline"))
+        self.option_label2.pack()
+
+        self.hide_text_var2 = ctk.StringVar(value="off")
+        self.hide_text_switch2 = ctk.CTkSwitch(master=self.option_frame2, text="Hide Textbox",
+                                               command=lambda: self.hide_textbox(self.textbox2,
+                                                                                 self.hide_text_switch2,
+                                                                                 self.webpage_btn2),
+                                               variable=self.hide_text_var2, onvalue="on",
+                                               offvalue="off")
+        self.hide_text_switch2.pack()
+
+        self.script_running_var2 = ctk.StringVar(value="off")
+        self.script_switch2 = ctk.CTkSwitch(master=self.option_frame2, text="Script Off",
+                                            variable=self.script_running_var2,
+                                            onvalue="on",
+                                            offvalue="off", state=ctk.DISABLED)
+        self.script_switch2.pack()
 
     @classmethod
     def set_switch(cls, status: bool, switch_widget: ctk.CTkSwitch, switch_str_var: ctk.StringVar, **kwargs):
@@ -160,7 +207,7 @@ class CargoInterface(ctk.CTk):
             self.setting_window.focus()
             self.attributes("-topmost", False)
 
-    def hide_textbox(self):
+    def hide_textbox(self, text_box: ctk.CTkTextbox, text_box_switch: ctk.CTkSwitch, webpage_btn: ctk.CTkButton):
         """
         Hide or Display the main textbox.
 
@@ -170,12 +217,12 @@ class CargoInterface(ctk.CTk):
         :return:
             None
         """
-        if self.hide_text_switch.get() == "on":
-            self.textbox.pack_forget()
+        if text_box_switch.get() == "on":
+            text_box.pack_forget()
         else:
-            self.webpage_btn.pack_forget()
-            self.textbox.pack()
-            self.webpage_btn.pack(pady="15")
+            webpage_btn.pack_forget()
+            text_box.pack()
+            webpage_btn.pack(pady="15")
 
     @classmethod
     def display_error(cls, title: str, message: str):
@@ -231,6 +278,16 @@ class CargoInterface(ctk.CTk):
         thread = threading.Thread(target=self.sla_bot_report_click)
         thread.start()
 
+    def home_delivery_report_command(self):
+        """
+        Create new thread for starting the selenium script
+        This method will allow the user to continue to interact with the GUI while the script is
+        running in the background.
+        :return: None
+        """
+        thread = threading.Thread(target=self.home_delivery_report_click)
+        thread.start()
+
     # TODO: Add more detailed docstring once method is completed.
     def sla_bot_report_click(self):
         """Start selenium script to generate the SLA/Bot Report"""
@@ -240,6 +297,7 @@ class CargoInterface(ctk.CTk):
 
         if self.check_conditions():
             try:
+                self.webpage.waybills_to_ship_page(self.webpage_data.get_waybill_url())
                 table_data, day_setting = self.webpage.fill_in_waybills_form()
             except TimeoutException as exception:
                 self.way_bill_form_error_handling(exception)
@@ -253,6 +311,18 @@ class CargoInterface(ctk.CTk):
                                 disable_widget=True, switch_text="Script Not Running")
         else:
             self.webpage.quit_selenium()
+
+    def home_delivery_report_click(self):
+        """Start selenium script to generate the Home Delivery Report"""
+        self.set_switch(status=True, switch_widget=self.script_switch2, switch_str_var=self.script_running_var2,
+                        disable_widget=False, switch_text="Script Running")
+        self.start_selenium()
+        if self.check_conditions():
+            self.webpage.search_awbs(self.webpage_data.get_search_awb_url())
+            table_data = self.webpage.fill_in_search_form()
+            home_report = TableData(table_data)
+            awb_list = home_report.get_awb_list()
+            self.webpage.test()
 
     def way_bill_form_error_handling(self, exception):
         self.webpage.quit_selenium()
@@ -270,8 +340,8 @@ class CargoInterface(ctk.CTk):
     def check_conditions(self):
         """Check all conditions to ensure successful script run"""
         loading_waybill_page = all((self.starting_webpage_load(),
-                                    self.login_success(),
-                                    self.webpage.waybills_to_ship_page(self.webpage_data.get_waybill_url())))
+                                    self.login_success()))
+
         return loading_waybill_page
 
     @classmethod
@@ -321,7 +391,7 @@ class CargoInterface(ctk.CTk):
             bool: True if the webpage is loaded correctly, False otherwise.
         """
         # Check if starting webpage is loaded correctly. If it's not add a popup.
-        if not self.webpage.check_webpage_loaded("//input[@id='UserName']", wait_time=5):
+        if not self.webpage.check_element_loaded("//input[@id='UserName']", wait_time=5):
             self.display_error("Webpage Load Error", "The webpage did not load correctly")
             return False
         return True
