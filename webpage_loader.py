@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from datetime import date
 import time
+from requests import Request, Session
 
 from Settings_Data import SettingsData
 from table_data import TableData
@@ -62,8 +63,8 @@ class CargoWebpage:
         """
         self.driver.quit()
 
-    def check_webpage_loaded(self, element: str, wait_time: int) -> bool:
-        """Check if a webpage is loaded or not.
+    def check_element_loaded(self, element: str, wait_time: int) -> bool:
+        """Check if a element is loaded or not.
 
         This method checks to see if a webpage is loaded correctly. It does this by checking if it can find the
         specified element that is passed as an argument is on the page. The element argument must be passed as an XPATH
@@ -97,7 +98,7 @@ class CargoWebpage:
         :return: Returns True if it can find the "logout" element on the webpage (successful login), otherwise false.
         """
 
-        return self.check_webpage_loaded(element="//div[@class='DlinkLoggedIn']//a[normalize-space()='Logout']",
+        return self.check_element_loaded(element="//div[@class='DlinkLoggedIn']//a[normalize-space()='Logout']",
                                          wait_time=2)
 
     def login(self):
@@ -122,7 +123,7 @@ class CargoWebpage:
     # TODO: Add docstring when method is finished.
     def waybills_to_ship_page(self, url: str) -> bool:
         self.load_url(url)
-        if self.check_webpage_loaded("//input[@id='txt_from_date75']", wait_time=5):
+        if self.check_element_loaded("//input[@id='txt_from_date75']", wait_time=5):
             return True
         return False
 
@@ -156,12 +157,60 @@ class CargoWebpage:
         waybill_table = self.driver.find_element(By.XPATH,
                                                  "/html/body/div[7]/div[5]/div[3]/div[1]/div[2]/div/div[4]/table")
 
-        # Get Entire HTML Code for table element and store in string.
+        # Get Entire HTML Code for table element.
         waybill_html = waybill_table.get_attribute('outerHTML')
 
         self.quit_selenium()
 
         return waybill_html, sla_bot_data["DayAmount"]
 
+    def search_awbs(self, url: str) -> bool:
+        self.load_url(url)
+        if self.check_element_loaded("//input[@id='txt_key']", wait_time=5):
+            return True
+        return False
 
+    def fill_in_search_form(self):
+        from_date_field = self.driver.find_element(By.XPATH, "//input[@id='txt_date_range_from']")
+        to_date_field = self.driver.find_element(By.XPATH, "//input[@id='txt_date_range_to']")
+        from_airport_field = self.driver.find_element(By.XPATH, "/html/body/div[7]/form/div/div[1]"
+                                                                "/div/div/div[1]/div[3]/div/div[2]/div/select")
+        to_airport_field = self.driver.find_element(By.XPATH, "/html/body/div[7]/form/div/div[1]"
+                                                              "/div/div/div[2]/div[2]/div/div[2]/div/select")
+        keyword_field = self.driver.find_element(By.XPATH, "//input[@id='txt_key']")
+        search_button = self.driver.find_element(By.XPATH, "//button[@id='btn_search']")
 
+        home_delivery_data = self.webpage_data.get_setting_values("Home")
+
+        from_date_field.send_keys(home_delivery_data["Date"])
+        Select(from_airport_field).select_by_value(home_delivery_data["FromAirport"])
+        Select(to_airport_field).select_by_value(home_delivery_data["ToAirport"])
+        keyword_field.send_keys(home_delivery_data["Keyword"])
+
+        search_button.click()
+
+        if self.results_found():
+            # Allows the hidden dropdown box to appear.
+            time.sleep(1)
+            items_per_page_drop_down = self.driver.find_element(By.XPATH,
+                                                                "/html/body/div[7]/div[5]/div[2]/div/div[2]/span["
+                                                                "1]/span/select")
+
+            self.driver.execute_script("arguments[0].style.display = 'block';", items_per_page_drop_down)
+
+            Select(items_per_page_drop_down).select_by_value('all')
+
+            # Find Table
+            waybill_table = self.driver.find_element(By.XPATH,
+                                                     "/html/body/div[7]/div[5]/div[2]/div/table")
+
+            # Get Entire HTML Code for table element.
+            waybill_html = waybill_table.get_attribute('outerHTML')
+
+            return waybill_html
+
+        else:
+            print("Failed")
+
+    def results_found(self):
+        return self.check_element_loaded(element="/html/body/div[7]/div[5]/div[2]/div/table", wait_time=3)

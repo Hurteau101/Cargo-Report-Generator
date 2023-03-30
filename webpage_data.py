@@ -11,7 +11,7 @@ USERNAME = os.getenv("USERNAME_1")
 PASSWORD = os.getenv("PASSWORD")
 CARGO_HOMEPAGE = os.getenv("CARGO_HOMEPAGE")
 WAYBILLS_REPORT_URL = os.getenv("WAYBILLS_REPORT_URL")
-
+SEARCH_AWB_URL = os.getenv("SEARCH_AWB_URL")
 
 class WebpageData:
     def __init__(self):
@@ -20,6 +20,7 @@ class WebpageData:
         self._password = PASSWORD
         self._cargo_homepage = CARGO_HOMEPAGE
         self._waybill_url = WAYBILLS_REPORT_URL
+        self._search_awb_url = SEARCH_AWB_URL
 
     def get_username(self):
         return self._username
@@ -32,6 +33,9 @@ class WebpageData:
 
     def get_waybill_url(self):
         return self._waybill_url
+
+    def get_search_awb_url(self):
+        return self._search_awb_url
 
     @classmethod
     def subtract_date(cls, months: int = 0, days: int = 0):
