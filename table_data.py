@@ -20,12 +20,15 @@ class TableData:
 
     def __init__(self, waybill_table):
         # TODO: Uncomment once ready to test fully.
+        #self.table_data = waybill_table
         self.table_data = pd.read_html(waybill_table)[0]
         self.sla_data = None
         # This attribute is used to filter the rows by a certain day.
         self.day_sorter = 0
         self.sla_weight_sum = 0
         self.highest_day = 0
+        self.shipped_awb_data = None
+        self.not_shipped_awb_data = None
 
     @classmethod
     def rename_columns(cls, dataframe: pd.DataFrame, column_names: dict) -> pd.DataFrame:
@@ -112,6 +115,13 @@ class TableData:
 
     @classmethod
     def sort_column(cls, dataframe: pd.DataFrame, column_name: str, ascending: bool):
+        """
+        Sort a dataframe column based on its values.
+        :param dataframe: The DataFrame to modify.
+        :param column_name: Name of the column to sort.
+        :param ascending: Sort in ascending. True = ascending order | False = descending order
+        :return: None
+        """
         dataframe.sort_values(by=column_name, ascending=ascending, inplace=True)
 
     def create_starting_table(self):
@@ -319,11 +329,49 @@ class TableData:
 
     def get_awb_list(self):
         """
-        Get a list of AWB's. Remove the portion of the AWB of "632-".
+        Get a list of AWB's and store them in a dictionary. Where the key is the AWB number and value is another
+        dictionary which contains the consignee, the community it's gonig to.
         :return: Returns a list of AWB's to use to search for AWB's in another class.
         """
         self.table_data = self.modify_column_string(dataframe=self.table_data, column_name="Consignment #",
                                                     replace_string="632-",
                                                     replace_string_with="")
 
-        return self.table_data["Consignment #"].to_list()
+        records = self.table_data.to_dict(orient="records")
+
+        awb_dict = [{"AWB No.": record["Consignment #"], "Consignee": record["Consignee Name"].title(),
+                     "Community": record["To"]} for record in records]
+
+        return awb_dict
+
+    def _sort_home_delivery_awbs(self):
+        # Use .copy() as you are not modifying the original data frame. You are filtering through the column
+        # and creating a new dataframe for shipped_awb_data and not_shipped_awb_data
+        self.shipped_awb_data = self.table_data[self.table_data["Flight Status"].str.contains("Allocated")].copy()
+        self.not_shipped_awb_data = self.table_data[~self.table_data["Flight Status"].str.contains("Allocated")].copy()
+
+    def _format_home_delivery_awbs(self):
+        self._sort_home_delivery_awbs()
+
+        self.drop_columns(dataframe=self.shipped_awb_data, column_names=["Flight Status"])
+        self.drop_columns(dataframe=self.not_shipped_awb_data, column_names=["Consignee", "Flight Number",
+                                                                             "Flight Date", "Weight"])
+        self.shipped_awb_data["Flight Number"] = self.shipped_awb_data["Flight Number"].str.upper()
+        self.sort_column(dataframe=self.shipped_awb_data, column_name="Flight Date", ascending=False)
+
+        # Convert it to a float first, as the weight column is a string. Then convert the float to an int.
+        self.shipped_awb_data = self.convert_column_to_datatype(dataframe=self.shipped_awb_data, column_name="Weight",
+                                                                data_type="float")
+        self.shipped_awb_data = self.convert_column_to_datatype(dataframe=self.shipped_awb_data, column_name="Weight",
+                                                                data_type="int")
+
+        # Use apply method on the AWB No. Column. The apply method calls a function on the column (AWB No.)
+        # We use lambda as the function call to store the current value in x and add 632- to it.
+        self.shipped_awb_data["AWB No."] = self.shipped_awb_data["AWB No."].apply(lambda x: f"632-{x}")
+        self.not_shipped_awb_data["AWB No."] = self.not_shipped_awb_data["AWB No."].apply(lambda x: f"632-{x}")
+
+    def get_home_delivery_awbs(self, awb_list: list):
+        self.table_data = pd.DataFrame(awb_list)
+        self._format_home_delivery_awbs()
+
+        return self.shipped_awb_data.to_dict(orient="records"), self.not_shipped_awb_data.to_dict(orient="records")
