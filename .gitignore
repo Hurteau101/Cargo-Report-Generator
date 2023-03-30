@@ -3,3 +3,5 @@
 /workspace.xml
 .env
 logo.png
+*.xlsx
+*/Cargo_Report/
