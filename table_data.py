@@ -99,6 +99,18 @@ class TableData:
         return dataframe
 
     @classmethod
+    def _rearrange_columns(cls, dataframe: pd.DataFrame, rearrange_column_names: list):
+        """
+        Re-arranges the way the columns are ordered. Ex (AWB, Date, Notes) - rearrange_column_names = [Date, Notes, AWB]
+        The dataframe will now display the columns as Date, Notes, AWB.
+        :param dataframe: The DataFrame to modify.
+        :param rearrange_column_names: List of the new re-arranged column names.
+        :return: Returns the modified dataframe with the re-arranged columns.
+        """
+        dataframe = dataframe.reindex(columns=rearrange_column_names)
+        return dataframe
+
+    @classmethod
     def modify_column_string(cls, dataframe: pd.DataFrame, column_name: str, replace_string: str,
                              replace_string_with: str) -> pd.DataFrame:
         """
@@ -340,7 +352,7 @@ class TableData:
         records = self.table_data.to_dict(orient="records")
 
         awb_dict = [{"AWB No.": record["Consignment #"], "Consignee": record["Consignee Name"].title(),
-                     "Community": record["To"]} for record in records]
+                     "Community": record["To"], "No. of Pieces": record["Pieces"]} for record in records]
 
         return awb_dict
 
@@ -355,23 +367,22 @@ class TableData:
 
         self.drop_columns(dataframe=self.shipped_awb_data, column_names=["Flight Status"])
         self.drop_columns(dataframe=self.not_shipped_awb_data, column_names=["Consignee", "Flight Number",
-                                                                             "Flight Date", "Weight"])
+                                                                             "Flight Date", "No. of Pieces"])
         self.shipped_awb_data["Flight Number"] = self.shipped_awb_data["Flight Number"].str.upper()
         self.sort_column(dataframe=self.shipped_awb_data, column_name="Flight Date", ascending=False)
-
-        # Convert it to a float first, as the weight column is a string. Then convert the float to an int.
-        self.shipped_awb_data = self.convert_column_to_datatype(dataframe=self.shipped_awb_data, column_name="Weight",
-                                                                data_type="float")
-        self.shipped_awb_data = self.convert_column_to_datatype(dataframe=self.shipped_awb_data, column_name="Weight",
-                                                                data_type="int")
 
         # Use apply method on the AWB No. Column. The apply method calls a function on the column (AWB No.)
         # We use lambda as the function call to store the current value in x and add 632- to it.
         self.shipped_awb_data["AWB No."] = self.shipped_awb_data["AWB No."].apply(lambda x: f"632-{x}")
         self.not_shipped_awb_data["AWB No."] = self.not_shipped_awb_data["AWB No."].apply(lambda x: f"632-{x}")
 
-    def get_home_delivery_awbs(self, awb_list: list):
+    def home_delivery_creation_data(self, awb_list: list):
         self.table_data = pd.DataFrame(awb_list)
         self._format_home_delivery_awbs()
 
-        return self.shipped_awb_data.to_dict(orient="records"), self.not_shipped_awb_data.to_dict(orient="records")
+        self.rename_columns(dataframe=self.shipped_awb_data, column_names={"Flight Number": "Flight No.",
+                                                                     "Flight Date": "Date"})
+
+        self.shipped_awb_data = self._rearrange_columns(dataframe=self.shipped_awb_data,
+                                                  rearrange_column_names=["Date", "Flight No.", "Community",
+                                                                          "AWB No.", "No. of Pieces", "Consignee"])
