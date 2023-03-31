@@ -305,6 +305,7 @@ class CargoInterface(ctk.CTk):
                 self.way_bill_form_error_handling(exception)
             else:
                 waybill_data = self.get_sla_bot_data(table_data, day_setting)
+                print(waybill_data)
                 self.create_cargo_report(waybill_data)
 
                 self.set_switch(status=False, switch_widget=self.script_switch, switch_str_var=self.script_running_var,
@@ -320,11 +321,15 @@ class CargoInterface(ctk.CTk):
         if self.check_conditions():
             self.webpage.check_search_awbs_page(self.webpage_data.get_search_awb_url())
             table_data = self.webpage.fill_in_search_form()
+
             home_report = TableData(table_data)
             awb_list = home_report.get_awb_list()
             home_delivery_awbs = self.webpage.search_awb(awb_list)
-            shipped, not_shipped = home_report.get_home_delivery_awbs(home_delivery_awbs)
-            
+            home_report.home_delivery_creation_data(home_delivery_awbs)
+            self.create_home_delivery_report(home_report)
+
+            self.set_switch(status=False, switch_widget=self.script_switch2, switch_str_var=self.script_running_var2,
+                            disable_widget=True, switch_text="Script Not Running")
 
     def way_bill_form_error_handling(self, exception):
         self.webpage.quit_selenium()
@@ -366,6 +371,10 @@ class CargoInterface(ctk.CTk):
         design.insert_data_to_excel()
         design.create_report()
         design.create_excel_file()
+
+    def create_home_delivery_report(self, home_report):
+        design = ReportDesign(shipped_awb=home_report.shipped_awb_data, non_shipped_awb=home_report.not_shipped_awb_data)
+        design.create_home_delivery_report()
 
     def start_selenium(self):
         """
