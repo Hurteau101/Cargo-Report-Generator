@@ -29,9 +29,12 @@ class ReportDesign:
            - _excel_settings() - Sets the Excel Settings, such as the name of the file, name of the sheet and if you
            want the Excel sheet to display gridlines.
        """
-    def __init__(self, sla_data, bot_data, total_sla_weight, day_sorter, highest_day):
+    def __init__(self, sla_data=None, bot_data=None, total_sla_weight=None, day_sorter=None,
+                 highest_day=None, shipped_awb=None, non_shipped_awb=None):
         self.sla_data = sla_data
         self.bot_data = bot_data
+        self.shipped_awb = shipped_awb
+        self.non_shipped_awb = non_shipped_awb
         self.day_sorter = day_sorter
         self.highest_day = highest_day
         self.total_sla_weight = total_sla_weight
@@ -61,6 +64,38 @@ class ReportDesign:
                 # Write the bot_dataframe to the Excel file
                 sla_dataframe.to_excel(writer, startrow=9 - 1, startcol=2 - 1, header=False)
                 bot_dataframe.to_excel(writer, startrow=8 - 1, startcol=5 - 1, index=False)
+
+    def insert_home_delivery_awb(self):
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as temp:
+            self.temp_file = temp.name
+
+            # Create a Home Delivery for shipped awb's and non shipped awbs
+            shipped_awb_frame = pd.DataFrame(self.shipped_awb)
+            non_shipped_awb_frame = pd.DataFrame(self.non_shipped_awb)
+
+            with pd.ExcelWriter(temp.name) as writer:
+                shipped_awb_frame.to_excel(writer, startrow=8 -1, startcol=2 -1, sheet_name="Shipped AWB(s)", index=False)
+                non_shipped_awb_frame.to_excel(writer, startrow=1 -1, startcol=1 -1, sheet_name="Non-Shipped AWB(s)", index=False)
+
+    def _not_shipped_awb_header_design(self):
+        not_shipped_headers_list = [key for key in self.non_shipped_awb]
+        not_shipped_header_location = self._get_cell_coordinates(not_shipped_headers_list)
+
+        for cell_cord in not_shipped_header_location.keys():
+            self._fill_color(cell_coordinate=cell_cord, hex_color='4285f4')
+            self._change_font(cell_coordinate=cell_cord, bold=True, size=15)
+            self._create_full_border(cell_coordinate=cell_cord)
+
+    def _shipped_awb_header_design(self):
+        self.sheet["H8"].value = "Notes"
+        shipped_headers_list = [key for key in self.shipped_awb]
+        shipped_headers_list.append("Notes")
+        shipped_header_location = self._get_cell_coordinates(shipped_headers_list)
+
+        for cell_cord in shipped_header_location.keys():
+            self._fill_color(cell_coordinate=cell_cord, hex_color='4285f4')
+            self._change_font(cell_coordinate=cell_cord, bold=True, size=15)
+            self._create_full_border(cell_coordinate=cell_cord)
 
     def _header_design(self):
         """
@@ -193,6 +228,18 @@ class ReportDesign:
         self.sheet["L5"].alignment = Alignment(vertical="center")
         self.sheet.merge_cells("L5:M6")
 
+    def _add_logo_shipped_awb(self):
+        img = Image("logo.png")
+        self.sheet.add_image(img, 'D1')
+
+    def _create_title_header(self):
+        self.sheet.merge_cells("B3:C5")
+        self.sheet["B3"].value = "Home Delivery Sent"
+        self._fill_color(cell_coordinate="B3", hex_color="4285f4")
+        self._change_font(cell_coordinate="B3", bold=True, italics=True, size=20)
+        self._create_full_border(cell_coordinate="B3")
+        self.sheet["B3"].alignment = Alignment(vertical="center", horizontal="center")
+
     def _add_logo(self):
         """
         Add the logo to the Cargo Report.
@@ -212,6 +259,18 @@ class ReportDesign:
         return current_date_time
 
     def _create_sla_bot_report_folder(self, folder_name):
+        """
+        Creates a folder in the current working directory based on the folder_name argument. It will check if the
+        folder doesn't exist. If it doesn't, it will create a folder.
+        :param folder_name:
+        :return:
+        """
+        current_director = os.getcwd()
+        self.report_folder_path = os.path.join(current_director, folder_name)
+        if not os.path.isdir(folder_name):
+            os.mkdir(self.report_folder_path)
+
+    def _create_home_delivery_report_folder(self, folder_name):
         """
         Creates a folder in the current working directory based on the folder_name argument. It will check if the
         folder doesn't exist. If it doesn't, it will create a folder.
@@ -269,6 +328,28 @@ class ReportDesign:
             else:
                 self.sheet.column_dimensions[column_name].width = width
 
+    def _get_custom_column_widths_shipped_awbs(cls):
+        custom_column_width = {
+            "B": 20,
+            "C": 20,
+            "D": 20,
+            "E": 20,
+            "F": 20,
+            "G": 20,
+            "H": 40,
+        }
+
+        return custom_column_width
+
+    def _get_custom_column_widths_not_shipped_awbs(self):
+        custom_column_width = {
+            "A": 20,
+            "B": 20,
+            "C": 50,
+        }
+
+        return custom_column_width
+
     @classmethod
     def _get_custom_column_widths(cls):
         """
@@ -314,18 +395,19 @@ class ReportDesign:
                                                     top=Side(border_type), bottom=Side(border_type))
 
     def _change_font(self, cell_coordinate: str, font_name: str = "Calibri", size: int = 11, bold: bool = False,
-                     hex_color: str = "ffffff"):
+                     italics: bool = False, hex_color: str = "ffffff"):
         """
         Change the font of a specific cell.
         :param cell_coordinate: Coordinate of the cell you want to change the font for. (Ex. E10)
         :param font_name: Name of the font (Default: 'Calibri')
         :param size: Size of the font (Default: 11)
         :param bold: Set bold font. True = Bold | False = Not Bold (Default: false)
+        :param italics: Set italics font. True = Italic | False = Not Italic (Default: false)
         :param hex_color: Color you want the font to be. Make sure its in hex value without '#'.
         (Default = 'ffffff' [White Color])
         :return: None
         """
-        self.sheet[cell_coordinate].font = Font(name=font_name, size=size, bold=bold, color=hex_color)
+        self.sheet[cell_coordinate].font = Font(name=font_name, size=size, bold=bold, color=hex_color, italic=italics)
 
     def _fill_color(self, cell_coordinate: str, hex_color: str, fill_type: str = "solid"):
         """
@@ -367,8 +449,41 @@ class ReportDesign:
                              sheet_title="Cargo Report", show_gridlines=False)
         self._save_temp_file()
 
+    def create_non_shipped_awb_sheet(self):
+        temp_name = self.temp_file
+        self.workbook = load_workbook(temp_name)
+        self.sheet = self.workbook.active
+        self.sheet = self.workbook["Non-Shipped AWB(s)"]
+        self._not_shipped_awb_header_design()
+        self._set_columns_widths(self._get_custom_column_widths_not_shipped_awbs())
+        self._all_cells_style(horizontal_alignment="center")
+        self.sheet.sheet_view.showGridLines = False
+        self._save_temp_file()
+
+    def create_shipped_awb_sheet(self):
+        self._open_temp_file()
+        self._shipped_awb_header_design()
+        self._add_logo_shipped_awb()
+        self._set_columns_widths(column_custom_width=self._get_custom_column_widths_shipped_awbs())
+        self._all_cells_style(horizontal_alignment="center")
+        self._create_title_header()
+        self.sheet.sheet_view.showGridLines = False
+        self._save_temp_file()
+
+    def create_home_delivery_report(self):
+        self.insert_home_delivery_awb()
+        self.create_shipped_awb_sheet()
+        self.create_non_shipped_awb_sheet()
+        self.excel_name = f"Home Delivery Report on {self.get_date_time()}.xlsx"
+        self.create_home_delivery_excel_file()
+
+
     def _save_temp_file(self):
         self.workbook.save(self.temp_file)
+
+    def create_home_delivery_excel_file(self):
+        self._create_sla_bot_report_folder("Home Delivery Reports")
+        shutil.move(self.temp_file, f"{self.report_folder_path}/{self.excel_name}")
 
     def create_excel_file(self):
         """
@@ -377,7 +492,7 @@ class ReportDesign:
         last, as the user will be able to see the file once this method is called.
         :return: None
         """
-        self._create_sla_bot_report_folder("Cargo Report")
+        self._create_sla_bot_report_folder("Cargo Reports")
 
         # Move Temp File for user to see
         shutil.move(self.temp_file, f"{self.report_folder_path}/{self.excel_name}")
