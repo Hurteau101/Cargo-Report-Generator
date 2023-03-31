@@ -231,7 +231,7 @@ class CargoWebpage:
 
         awb_info = awb_list.copy()
 
-        for i in range(len(awb_list)):
+        for i in reversed(range(len(awb_list))):
             awb = awb_list[i].get("AWB No.")
 
             awb_field.send_keys(awb)
@@ -284,7 +284,7 @@ class CargoWebpage:
             row_header_list = [row.text for row in row_header]
 
             status_dict = {row_header_list[i]: cell_list[i] for i in range(len(row_header_list))
-                           if row_header_list[i] in ['Flight Status', 'Flight Number', 'Flight Date', "Weight"]}
+                           if row_header_list[i] in ['Flight Status', 'Flight Number', 'Flight Date']}
 
             return status_dict
 
