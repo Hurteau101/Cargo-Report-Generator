@@ -4,73 +4,109 @@ from datetime import date
 
 class TableData:
     """
-        A class for extracting data from an HTML table and setting values to be used in other classes.
-        Class Utilizes the Panda Library.
+    A class for extracting data from an HTML table and setting values to be used in other classes.
+    Class Utilizes the Panda Library.
 
-       Main Attributes:
-           - table_data - The main table. Reads an HTML table that is passed in via the constructor.
-           - sla_data - All data that is related to the SLA Table portion
+      Attributes:
+        - sla_data (dict) - SLA Data Dictionary
+        - day_sorter (int): Day value that was used to filter the "Days" column.
+        - highest_day (int): Highest value in the "Day" Column
+        - home_delivery_awb_list (list): A list of AWB's.
+        - shipped_awb_df (Dataframe): Shipped AWB's Dataframe
+        - non_shipped_awb_df (Dataframe): Non-Shipped AWB's Dataframe
+      Methods:
+        - rename_columns: Rename columns in a Dataframe.
+        - drop_columns: Drop columns in a Dataframe
+        - insert_column: Insert columns in a Dataframe
+        - convert_column_to_datatype: Convert columns to a specific type in a Dataframe
+        - replace_column_str_values: Replace text in a column with another value in a Dataframe
+        - rearrange_columns: Rearrange columns in a Dataframe
+        - sort_columns: Sort columns in a Dataframe
+        - drop_empty_values: Drop empty values in a Dataframe
+        - create_report_data: Creates SLA/Bot or Home Delivery Report Data
+        - get_sla_bot_data: Gets SLA Data Dictionary, Bot Data Dataframe and Highest Day Value
+        - get_awb_list: Gets a list of AWB's and AWB information
+        - get_home_delivery_data: Gets shipped AWB Dataframe and Non Shipped AWB Dataframe
+    """
 
-       Main Operations:
-           - create_starting_table - Creates the main table data and updates it by dropping necessary columns, renaming
-           columns, and dropping necessary text.
-           - sla_report_creation_data - Calls all methods that are responsible for creating the SLA Report Data.
-           - bot_report_creation_data - Calls all methods that are responsible for creating the Bot Report Data.
-       """
+    # Valid Report constant which contains the report name and a tuple of the method name to be called along with the
+    # instance attributes to be created at runtime.
+    VALID_REPORTS = {
+        "SLA/Bot Report": ("_create_bot_sla_table_data", ("sla_data", "day_sorter", "highest_day")),
+        "Home Delivery Report": ("_create_home_delivery_data", ("home_delivery_awb_list", "shipped_awb_df",
+                                                                "non_shipped_awb_df"))
+    }
 
-    def __init__(self, waybill_table):
-        # TODO: Uncomment once ready to test fully.
-        #self.table_data = waybill_table
-        self.table_data = pd.read_html(waybill_table)[0]
-        self.sla_data = None
-        # This attribute is used to filter the rows by a certain day.
-        self.day_sorter = 0
-        self.sla_weight_sum = 0
-        self.highest_day = 0
-        self.shipped_awb_data = None
-        self.not_shipped_awb_data = None
-
-    @classmethod
-    def rename_columns(cls, dataframe: pd.DataFrame, column_names: dict) -> pd.DataFrame:
+    def __init__(self, table_data: str, report_name: str):
         """
-        Renames the specified columns.
-        This method takes a dictionary of Column names. The key is the old column names and value is the
-        new column names
-        :param dataframe: The DataFrame to modify.
-        :param column_names: Dictionary of column names. Key = old column names : Values = new column names
-        :return: Returns the new modified DataFrame with the column name changes.
+        Initializes a TableData object with the specified table data and report name.
+
+        Upon initialization, the HTML table data is parsed using the `read_html` method
+        of the pandas' library, and the resulting DataFrame is stored in the `table_df`
+        attribute of the object. The `report_name` argument is used to determine which
+        report to generate, and the appropriate method name and instance variables are
+        retrieved from the `VALID_REPORTS` dictionary. The instance variables are then
+        created and initialized to `None` using the `setattr` method.
+
+
+        :param table_data: a string containing the HTML table data to be parsed
+        :param report_name: The name of the report to be created. Must be one of the valid report names defined
+            in VALID_REPORT.
+        :raises KeyError: If the specified report name is not one of the valid report names defined in
+            VALID_REPORT.
+        """
+        self.table_df = pd.read_html(table_data)[0]
+
+        if report_name not in TableData.VALID_REPORTS.keys():
+            raise KeyError(f"{report_name} is not a valid report. Valid reports are "
+                           f"{' or '.join(TableData.VALID_REPORTS.keys())}")
+
+        # create_report stores the tuple values for the method name to call.
+        # instance_variables stores the tuple values to create the necessary instance variables.
+        report_name, instance_variables = TableData.VALID_REPORTS[report_name]
+
+        # Loop through the instance_variables assign them self, the variable name and the value none.
+        for var in instance_variables:
+            setattr(self, var, None)
+
+    @staticmethod
+    def rename_columns(dataframe: pd.DataFrame, column_names: dict) -> None:
+        """
+        Rename columns of a Dataframe.
+        :param dataframe: Dataframe to modify.
+        :param column_names: A dictionary of column names to be renamed. The keys are the old column names, the values
+        are the new column names.
         """
         dataframe.rename(columns=column_names, inplace=True)
-        return dataframe
 
-    @classmethod
-    def drop_columns(cls, dataframe: pd.DataFrame, column_names: list):
+    @staticmethod
+    def drop_columns(dataframe: pd.DataFrame, column_names: list) -> None:
         """
-        Drops the specified columns that are passed in as column_name agreement.
-        This method takes a list of column names that you want to delete from the DataFrame.
-        :param dataframe: The DataFrame to modify.
-        :param column_names: The list of Columns to delete.
-        :return: None
+        Drops columns of a Dataframe.
+        :param dataframe: Dataframe to modify.
+        :param column_names: List of column names to drop.
         """
-        dataframe.drop(column_names, axis=1, inplace=True)
+        dataframe.drop(columns=column_names, axis=1, inplace=True)
 
-    @classmethod
-    def insert_column(cls, dataframe: pd.DataFrame, last_column: bool, column_name: str,
+    @staticmethod
+    def insert_column(dataframe: pd.DataFrame, column_name: str, last_column: bool = True,
                       column_position: int = None) -> pd.DataFrame:
         """
-        Insert columns into the DataFrame.
-        This method allows you to insert a column at a specific position or at the end of the last column. If
-        last_column = False, ensure you pass in the column_position as an int of where you want to insert the column.
-        :param dataframe: The DataFrame to modify.
-        :param last_column: Select if you want the column to be inserted at the end. True = Column inserted at the end,
-        False  = Column inserted at your desired position by specifying the column_position argument.
-        :param column_name: Name of the column to insert.
-        :param column_position: What position to insert the column.
-        :return: Returns the new modified DataFrame with the newly inserted column.
+        Insert a column into a Dataframe.
+        :param dataframe: Dataframe to modify.
+        :param column_name: Column name to insert.
+        :param last_column: Insert column at last position of Dataframe. (Default Value: True)
+        :param column_position: Column position to insert the column. (Default Value: None)
+        :return: Returns the modified Dataframe.
+        :raise KeyError: Raises an error if last_column is set to False and no column position was set or if
+            both last_column and column_position were set.
         """
         if not last_column and column_position is None:
-            raise ValueError("If last_column is False, please select a position to insert the column with "
-                             "column_position argument. Must be an int!")
+            raise ValueError(f"last_column was set as {last_column} and no column position was set. Please"
+                             f"insert a column position.")
+        elif last_column and column_position is not None:
+            raise ValueError("Both 'last_column' and 'column_position' cannot be set at the same time. "
+                             "Please set only one.")
 
         if last_column:
             dataframe.insert(loc=len(dataframe.columns), column=column_name, value=" ")
@@ -79,16 +115,16 @@ class TableData:
             dataframe.insert(column_position, column_name, value="")
             return dataframe
 
-    @classmethod
-    def convert_column_to_datatype(cls, dataframe: pd.DataFrame, column_name: str, data_type: str) -> pd.DataFrame:
+    @staticmethod
+    def convert_column_to_datatype(dataframe: pd.DataFrame, column_name: str, data_type: str) -> pd.DataFrame:
         """
-        Converts an entire column to a specified data type.
-
-        :param dataframe: The DataFrame to modify.
-        :param column_name: The column to convert to an int.
-        :param data_type: The datatype to convert the column to. (Valid Types: 'int', 'float', 'str',
-        'bool', 'datetime64[ns]'
-        :return: Returns the new modified DataFrame with the column converted to an integer.
+        Converts a column of one type to another type in a Dataframe.
+        :param dataframe: Dataframe to modify.
+        :param column_name: Column name to modify.
+        :param data_type: Datatype to convert the column to. (Valid Types: 'int', 'float', 'str',
+            'bool' or 'datetime64[ns]'
+        :return: Returns the modified dataframe.
+        :raise KeyError: Raises an error if data_type is not in the list of valid data types.
         """
 
         valid_data_types = ['int', 'float', 'str', 'bool', 'datetime64[ns]']
@@ -98,54 +134,95 @@ class TableData:
         dataframe[column_name] = dataframe[column_name].astype(data_type)
         return dataframe
 
-    @classmethod
-    def _rearrange_columns(cls, dataframe: pd.DataFrame, rearrange_column_names: list):
+    @staticmethod
+    def replace_column_str_values(dataframe: pd.DataFrame, column_name: str, string_value: str,
+                                  replace_string_value: str) -> pd.DataFrame:
         """
-        Re-arranges the way the columns are ordered. Ex (AWB, Date, Notes) - rearrange_column_names = [Date, Notes, AWB]
-        The dataframe will now display the columns as Date, Notes, AWB.
-        :param dataframe: The DataFrame to modify.
-        :param rearrange_column_names: List of the new re-arranged column names.
-        :return: Returns the modified dataframe with the re-arranged columns.
+        Replaces a column string value by removing part of the string in each row for that column.
+        :param dataframe: Dataframe to modify.
+        :param column_name: Column name to modify.
+        :param string_value: The string to replace.
+        :param replace_string_value: The string that replaces string_value
+        :return: Returns the modified dataframe.
         """
-        dataframe = dataframe.reindex(columns=rearrange_column_names)
+
+        dataframe[column_name] = dataframe[column_name].str.replace(string_value, replace_string_value)
         return dataframe
 
-    @classmethod
-    def modify_column_string(cls, dataframe: pd.DataFrame, column_name: str, replace_string: str,
-                             replace_string_with: str) -> pd.DataFrame:
+    @staticmethod
+    def rearrange_columns(dataframe: pd.DataFrame, column_names: list) -> pd.DataFrame:
         """
-        Modify the text in the rows. Remove any part of a string in that row to a new value.
-        (Ex. Old String: "WPG = YYC". Using this method - (YYC). It removed "WPG = " from that specific value.
-        :param dataframe: The DataFrame to modify.
-        :param column_name: The column to check which rows to modify.
-        :param replace_string: Replaces the string specified (Can be full string or part of string).
-        :param replace_string_with: Replace with this string.
-        :return: Returns the new modified DataFrame with the newly modified string(s).
+        Re-arrange columns in a Dataframe.
+        :param dataframe: Dataframe to modify.
+        :param column_names: List of column names to rearrange. The order you pass in is the order the columns will
+            display in the Dataframe.
+        :return: Returns the modified dataframe.
+        :raise KeyError: Raises an error if the column was not found in the Dataframe.
         """
-        dataframe[column_name] = dataframe[column_name].str.replace(replace_string, replace_string_with)
+        for column in column_names:
+            if column not in dataframe.columns:
+                raise KeyError(f"Column '{column}' not found in DataFrame")
+
+        dataframe = dataframe.reindex(columns=column_names)
         return dataframe
 
-    @classmethod
-    def sort_column(cls, dataframe: pd.DataFrame, column_name: str, ascending: bool):
+    @staticmethod
+    def sort_columns(dataframe: pd.DataFrame, column_name: str, ascending: bool) -> None:
         """
-        Sort a dataframe column based on its values.
-        :param dataframe: The DataFrame to modify.
-        :param column_name: Name of the column to sort.
-        :param ascending: Sort in ascending. True = ascending order | False = descending order
-        :return: None
+        Sorts a column in a Dataframe.
+        :param dataframe: Dataframe to modify.
+        :param column_name: Column name to sort.
+        :param ascending: Sort by ascending.
         """
         dataframe.sort_values(by=column_name, ascending=ascending, inplace=True)
 
-    def create_starting_table(self):
+    @staticmethod
+    def drop_empty_values(dataframe: pd.DataFrame, column_name: list) -> None:
         """
-        Reformat the SLA/Bot Report starting table data, by dropping unnecessary columns, renaming the header rows and
-        removing any value in the "Route" column that starts with "WPG = ".
-        :return: None
+        Drops values that are empty in a list of columns.
+        :param dataframe: Dataframe to modify.
+        :param column_name: List of columns to check if the column contains any empty values.
         """
-        self.drop_columns(dataframe=self.table_data, column_names=[0, 2, 3, 7, 8, 9, 13, 14])
+        dataframe.dropna(subset=column_name, inplace=True)
+
+    @staticmethod
+    def create_dataframe_copy(dataframe: pd.DataFrame) -> pd.DataFrame:
+        """
+        Create a dataframe copy.
+        :param dataframe: Dataframe to copy.
+        :return: Returns a copy of the Dataframe.
+        """
+        return dataframe.copy(deep=True)
+
+    def create_report_data(self, report_name: str) -> None:
+        """
+        Executes the appropriate method call based on the report name. Either _create_bot_sla_table_data or
+        _create_home_delivery_data will be executed.
+        :param report_name: Name of the report to execute.
+        :raise KeyError: If the specified report name is not one of the valid report names defined in
+            VALID_REPORT.
+        """
+        if report_name not in TableData.VALID_REPORTS.keys():
+            raise KeyError(f"{report_name} is not a valid report. Pass in the same Report Name as you did when you"
+                           f" created the TableData Class. Valid reports are "
+                           f"{' or '.join(TableData.VALID_REPORTS.keys())}")
+
+        name_of_report = TableData.VALID_REPORTS[report_name][0]
+
+        # Store the method object in report_method and then call that method based on the report_name passed in.
+        report_method = getattr(self, name_of_report)
+        report_method()
+
+    def _sla_bot_starting_table_data(self) -> None:
+        """
+        Reformat the starting SLA/Bot Table.
+
+        Reformat the SLA/Bot Table by dropping unnecessary columns and renaming columns/column values.
+        """
+        TableData.drop_columns(self.table_df, column_names=[0, 2, 3, 7, 8, 9, 13, 14])
         # Reset index, due to dropped columns.
-        self.table_data = self.table_data.reset_index(drop=True)
-        self.rename_columns(self.table_data, {
+        self.table_df = self.table_df.reset_index(drop=True)
+        TableData.rename_columns(self.table_df, {
             1: "Route",
             4: "AWB",
             5: "Goods Desc.",
@@ -155,234 +232,217 @@ class TableData:
             12: "Hours Remaining",
             15: "Recvd Date",
         })
+        self.table_df = TableData.replace_column_str_values(dataframe=self.table_df, column_name="Route",
+                                                            string_value="WPG = ", replace_string_value="")
 
-        self.table_data = self.modify_column_string(self.table_data, column_name="Route", replace_string="WPG = ",
-                                                    replace_string_with="")
+    def get_sla_bot_data(self) -> tuple:
+        """
+        Get SLA/Bot Report Data.
+        :return: Returns a tuple of SLA Data Dictionary, Bot Data Dataframe and Highest Day Value
+        """
+        return self.sla_data, self.table_df, self.highest_day
 
-    def sla_report_creation_data(self):
+    def _create_bot_sla_table_data(self) -> None:
         """
-        Calls all methods that are responsible for creating the SLA Report Data. Such methods are getting only
-        keeping the rows that are in the negatives in "Hours Remaining" column (get_past_sla_rows),
-        grouping together all common alternative destinations (add_common_destinations), sorting the SLA dictionary
-        to show the highest value first (sort_dictionary) and lastly adding up all the sla_data values to get a total
-        weight.
-        :return: None
+        Creates the SLA/Bot Report Data
         """
-        sla_dataframe = self._get_past_sla_rows()
-        self._create_past_sla_dict(dataframe=sla_dataframe)
-        self._add_common_destinations()
-        self._sort_dictionary()
-        self._get_sla_weight_sum()
+        self._sla_bot_starting_table_data()
+        self._create_sla_data()
+        self._create_bot_data()
 
-    def _get_past_sla_rows(self):
+    def _create_bot_data(self) -> None:
         """
-        Deletes any row in the DataFrame that contains "-" in the Days Column. This is to ensure that only past
-        SLA rows are shown.
-        :return: None
+        Creates the Bot Table Data
         """
-        # Check if "-" in column 12. If "-" in column 12, return true. Returns all rows with "-"
-        # ~ is used to invert the boolean value that is returned from this. Without the ~ it would only display
-        # rows that don't contain "-". We only want to display values with "-".
-        sla_report = self.table_data.drop(self.table_data[~self.table_data["Hours Remaining"].str.contains('-')].index)
-        return sla_report
+        self._reconfigure_bot_columns()
+        self._add_day_values()
+        self._sort_days()
+        self._set_highest_day()
+        TableData.sort_columns(dataframe=self.table_df, column_name="Days", ascending=False)
+        self.table_df["Days"] = self.table_df["Days"] * -1
 
-    def _create_past_sla_dict(self, dataframe: pd.DataFrame):
+    def _reconfigure_bot_columns(self) -> None:
         """
-        Store all the values in the "Route" column into a dictionary with the name of the "Route" being the key and then
-        adding all the weight values that are associated with that route for the value key. Method uses the group
-        method to group all the "Route" values and then sums up all the "Weight" values that are associated with that
-        "Route" into a dictionary.
-
-        :param dataframe: The DataFrame to modify.
-        :return: None
+        Reconfigure the Bot Table Data by sorting, dropping, inserting, etc.. columns.
         """
-        self.convert_column_to_datatype(dataframe=dataframe, column_name="Weight", data_type="int")
-        self.sla_data = dataframe.groupby('Route')['Weight'].sum().to_dict()
-
-    def _add_common_destinations(self):
-        """
-        Add Common Destination Locations together. There are 2 main destinations that have common alternate
-        destinations: YST/WGK Locations - YST and WGK | YTH Locations - ZAC, XLB, YTH, XTL, YBT and XSI
-
-        This method checks to see if any of those alternate destinations are in the sla_data dictionary. If they are,
-        it will add up and combine all those alternate dictionaries and combine it into 1 main key dictionary with
-        all the alternate destination values added up.
-
-        :return: None
-        """
-        st_theresa_common = ["YST", "WGK"]
-        thompson_common = ["ZAC", "XLB", "YTH", "XTL", "YBT", "XSI"]
-
-        if any(destination in self.sla_data for destination in thompson_common):
-            yth_location_sum = sum(self.sla_data[destination] and self.sla_data.pop(destination) for
-                                   destination in thompson_common if destination in self.sla_data)
-            self.sla_data["YTH Locations"] = yth_location_sum
-
-        if any(destination in self.sla_data for destination in st_theresa_common):
-            st_theresa_location_sum = sum(self.sla_data[destination] and self.sla_data.pop(destination)
-                                          for destination in st_theresa_common if destination in self.sla_data)
-            self.sla_data["YST/WGK Locations"] = st_theresa_location_sum
-
-    def _sort_dictionary(self):
-        """
-        Sort SLA Data Dictionary by the destination with the highest number.
-        :return: None
-        """
-        # Sort dictionary in reverse order (The Highest value first). Since sorted will return a
-        # tuple, we use dict to convert it back to a dictionary. x[1] so we start at index 1 which is the values
-        # the keys would be [0]
-        self.sla_data = dict(sorted(self.sla_data.items(), key=lambda x: x[1], reverse=True))
-
-    def bot_report_creation_data(self):
-        """
-        Calls all methods that are responsible for creating the Bot Report Data. Such methods are reformatting the Bot Report
-        table (reformat_bot_report_table), only showing rows that are greater than the day_sorter value (sort_by_days),
-        and sorting the columns to display the highest value in "Days" first (sort_column). Also changes the
-        "Piece Count" and "Weight" columns to int, as they are originally set as strings.
-
-        :return: None
-        """
-        self._reformat_bot_report_table()
-        self._sort_by_days(dataframe=self.table_data)
-        self.sort_column(dataframe=self.table_data, column_name="Days", ascending=False)
-        self.table_data = self.convert_column_to_datatype(dataframe=self.table_data, column_name="Piece Count",
-                                                          data_type='int')
-        self.table_data = self.convert_column_to_datatype(dataframe=self.table_data, column_name="Weight",
-                                                          data_type='int')
-        self._get_highest_day(dataframe=self.table_data)
-
-    def _get_highest_day(self, dataframe: pd.DataFrame):
-        """
-        Check if the "Days" column is empty. If it is, set highest_day to N/A (no values in row). Otherwise,
-        set highest_day = to the highest value in the "Days" column.
-        :param dataframe: The DataFrame to check.
-        :return:
-        """
-        if len(dataframe["Days"]) == 0:
-            self.highest_day = "N/A"
-        else:
-            self.highest_day = dataframe["Days"].max()
-
-    def _reformat_bot_report_table(self):
-        """
-        Reformat the Bot Report Table by dropping "Hour Remaining" column, dropping any values that are empty in the
-        "Recvd Date", dropping the first row as it contains nothing but a subheader. Also inserts necessary columns for
-        the Bot Report table and adds values to the newly inserted "Days" column.
-        :return: None
-        """
-        self.drop_columns(self.table_data, column_names=["Hours Remaining"])
-        self.table_data.drop(self.table_data.index[0], inplace=True)
-        self._drop_empty_values(self.table_data, column_name=["Recvd Date"])
+        TableData.drop_columns(dataframe=self.table_df, column_names=["Hours Remaining"])
+        self.table_df.drop(self.table_df.index[0], inplace=True)
+        TableData.drop_empty_values(dataframe=self.table_df, column_name=["Recvd Date"])
         # Reset index, due to dropped columns.
-        self.table_data = self.table_data.reset_index(drop=True)
+        self.table_df = self.table_df.reset_index(drop=True)
 
-        self.table_data = self.insert_column(self.table_data, last_column=True, column_name="Status")
-        self.table_data = self.insert_column(self.table_data, last_column=True, column_name="Remarks")
-        self.table_data = self.insert_column(self.table_data, last_column=False, column_name="Days", column_position=6)
+        self.table_df = TableData.insert_column(dataframe=self.table_df, last_column=True, column_name="Status")
+        self.table_df = TableData.insert_column(dataframe=self.table_df, last_column=True, column_name="Remarks")
+        self.table_df = TableData.insert_column(dataframe=self.table_df, last_column=False, column_name="Days",
+                                                column_position=6)
 
-        self._add_day_values(self.table_data)
+        self.table_df = TableData.convert_column_to_datatype(dataframe=self.table_df, column_name="Piece Count",
+                                                             data_type="int")
 
-    @classmethod
-    def _drop_empty_values(cls, dataframe: pd.DataFrame, column_name: list):
+        # Convert the column to a float, incase there are float values.
+        self.table_df = TableData.convert_column_to_datatype(dataframe=self.table_df, column_name="Weight",
+                                                             data_type="float")
+        # Round all values.
+        self.table_df["Weight"] = self.table_df["Weight"].round()
+
+        # Then convert to int, to avoid any errors if there are float values in column.
+        self.table_df = TableData.convert_column_to_datatype(dataframe=self.table_df, column_name="Weight",
+                                                             data_type="int")
+
+    def _add_day_values(self) -> None:
         """
-        Drop empty values that are in a column.
-        :param dataframe: The DataFrame to modify.
-        :param column_name: The list of columns to check of empty values.
-        :return: None
-        """
-        dataframe.dropna(subset=column_name, inplace=True)
+        Add values to the "Days" column.
 
-    def _add_day_values(self, dataframe: pd.DataFrame):
-        """
-        Get the current date and convert it to a Timestamp Object. The method will loop through the "Recvd Date"
+        The method will loop through the "Recvd Date"
         column and take the "Recvd Date" value and subtract it with today's date. This will give us how many days
         a piece of cargo has been in the system. It will then input that new value into the "Days" column. The value
         will be negative, so we use Abs to convert it to a positive integer. Lastly drop the "Recvd" Column, as it
         won't be used anymore.
-        :param dataframe: The DataFrame to modify.
-        :return: None
         """
-
-        # Convert "Recvd Date" to Timestamp.
-        self._modify_recd_column()
+        # Convert this column to a Timestamp object, to preform Datetime calculations.
+        TableData.convert_column_to_datatype(dataframe=self.table_df, column_name="Recvd Date",
+                                             data_type="datetime64[ns]")
 
         today_date = pd.Timestamp(date.today())
 
-        for i in range(len(dataframe["Recvd Date"])):
-            delta = dataframe.at[i, "Recvd Date"] - today_date
+        for i in range(len(self.table_df["Recvd Date"])):
+            delta = self.table_df.at[i, "Recvd Date"] - today_date
             # Added +1 to include today's date.
-            self.table_data.at[i, "Days"] = abs(delta.days) + 1
+            self.table_df.at[i, "Days"] = abs(delta.days) + 1
+        TableData.drop_columns(dataframe=self.table_df, column_names=["Recvd Date"])
 
-        self.drop_columns(dataframe, ["Recvd Date"])
-
-    def _modify_recd_column(self):
+    def _set_highest_day(self) -> None:
         """
-        This converts the "Recvd Date" Column to a Timestamp object.
-        :return: None
+        Set the highest value in the "Days" column. If empty, set to "N/A".
         """
-        self.table_data = self.convert_column_to_datatype(dataframe=self.table_data, column_name="Recvd Date",
-                                                          data_type="datetime64[ns]")
+        if len(self.table_df["Days"]) == 0:
+            self.highest_day = "N/A"
+        else:
+            self.highest_day = self.table_df["Days"].max()
 
-    def _sort_by_days(self, dataframe: pd.DataFrame):
-        """Remove any rows that are less than the value of day_sort. The day_sorter will contain the value
-         from the SLA/Bot Report Setting (Days) entry box. This will sort the SLA/Bot Report to ensure only cargo
-         that has been here passed a certain amount of days is shown.
-         :return: None
-         """
-
-        self.table_data = dataframe[dataframe["Days"] >= self.day_sorter]
-
-    def _get_sla_weight_sum(self):
+    def _sort_days(self) -> None:
         """
-        Add up all the values in the sla_dict. This will get the total weight of all cargo that is past SLA.
-        :return: None
+        Remove any rows that are less than the value of day_sorter.
         """
-        self.sla_weight_sum = sum(self.sla_data.values())
 
-    def get_awb_list(self):
+        self.table_df = self.table_df[self.table_df["Days"] >= self.day_sorter]
+
+    def _create_sla_data(self) -> None:
         """
-        Get a list of AWB's and store them in a dictionary. Where the key is the AWB number and value is another
-        dictionary which contains the consignee, the community it's gonig to.
-        :return: Returns a list of AWB's to use to search for AWB's in another class.
+        Creates the SLA Table Data.
         """
-        self.table_data = self.modify_column_string(dataframe=self.table_data, column_name="Consignment #",
-                                                    replace_string="632-",
-                                                    replace_string_with="")
+        self._show_only_past_sla_rows()
+        self._create_past_sla_dict()
+        self._remove_common_destinations()
+        self._sort_sla_dictionary()
 
-        records = self.table_data.to_dict(orient="records")
+    def _show_only_past_sla_rows(self) -> None:
+        """
+        Drop all rows in the "Hours Remaining" column that do NOT contain "-".
+        """
+        self.sla_data = self.table_df.drop(self.table_df[~self.table_df["Hours Remaining"].str.contains('-')].index)
 
-        awb_dict = [{"AWB No.": record["Consignment #"], "Consignee": record["Consignee Name"].title(),
+    def _create_past_sla_dict(self) -> None:
+        """
+        Replaces dataframe to an SLA dictionary grouped by the "Route" column.
+
+        Method uses the group method to group all the "Route" values and then sums up all the "Weight" values that
+        are associated with that "Route" into a dictionary.
+        """
+        TableData.convert_column_to_datatype(dataframe=self.sla_data, column_name="Weight", data_type="int")
+        self.sla_data = self.sla_data.groupby('Route')['Weight'].sum().to_dict()
+
+    def _sort_sla_dictionary(self) -> None:
+        """
+        Sort SLA dictionary by the destination with the highest number.
+        """
+        self.sla_data = dict(sorted(self.sla_data.items(), key=lambda x: x[1], reverse=True))
+
+    def _remove_common_destinations(self) -> None:
+        """
+        Add common destination locations together in the SLA Dictionary.
+
+        This method checks to see if any destination has a common destination in the SLA dictionary. If there are
+        common destinations, it will combine it into 1 main key/value in the SLA dictionary with all values being added
+        up.
+        """
+
+        st_theresa_common_destinations = ["YST", "WGK"]
+        thompson_common_destinations = ["ZAC", "XLB", "YTH", "XTL", "YBT", "XSI"]
+
+        if any(destination in self.sla_data for destination in thompson_common_destinations):
+            yth_location_sum = sum(self.sla_data[destination] and self.sla_data.pop(destination) for
+                                   destination in thompson_common_destinations if destination in self.sla_data)
+            self.sla_data["YTH Locations"] = yth_location_sum
+
+        if any(destination in self.sla_data for destination in st_theresa_common_destinations):
+            st_theresa_location_sum = sum(self.sla_data[destination] and self.sla_data.pop(destination)
+                                          for destination in st_theresa_common_destinations if
+                                          destination in self.sla_data)
+            self.sla_data["YST/WGK Locations"] = st_theresa_location_sum
+
+    def get_awb_list(self) -> list:
+        """
+        Gets a list of AWB's and AWB information and stores them in a list of dictionary's.
+
+        :return: Returns a list of AWB Dictionary's.
+        """
+        self.table_df = TableData.replace_column_str_values(dataframe=self.table_df, column_name="Consignment #",
+                                                            string_value="632-",
+                                                            replace_string_value="")
+
+        records = self.table_df.to_dict(orient="records")
+
+        awb_list = [{"AWB No.": record["Consignment #"], "Consignee": record["Consignee Name"].title(),
                      "Community": record["To"], "No. of Pieces": record["Pieces"]} for record in records]
+        return awb_list
 
-        return awb_dict
+    def _sort_home_delivery_awbs(self) -> None:
+        """
+        Create 2 Dataframes for Shipped AWB's and Non-Shipped AWB's.
 
-    def _sort_home_delivery_awbs(self):
+        This will create 2 Dataframes based on checking if an AWB has been shipped or not.
+        """
         # Use .copy() as you are not modifying the original data frame. You are filtering through the column
         # and creating a new dataframe for shipped_awb_data and not_shipped_awb_data
-        self.shipped_awb_data = self.table_data[self.table_data["Flight Status"].str.contains("Allocated")].copy()
-        self.not_shipped_awb_data = self.table_data[~self.table_data["Flight Status"].str.contains("Allocated")].copy()
+        self.shipped_awb_df = self.table_df[self.table_df["Flight Status"].str.contains("Allocated")].copy()
+        self.non_shipped_awb_df = self.table_df[~self.table_df["Flight Status"].str.contains("Allocated")].copy()
 
-    def _format_home_delivery_awbs(self):
+    def _format_home_delivery_dataframe(self) -> None:
+        """
+        Responsible for reformatting the Shipped AWB Dataframe and Non-Shipped AWB Dataframe.
+        """
         self._sort_home_delivery_awbs()
 
-        self.drop_columns(dataframe=self.shipped_awb_data, column_names=["Flight Status"])
-        self.drop_columns(dataframe=self.not_shipped_awb_data, column_names=["Consignee", "Flight Number",
-                                                                             "Flight Date", "No. of Pieces"])
-        self.shipped_awb_data["Flight Number"] = self.shipped_awb_data["Flight Number"].str.upper()
-        self.sort_column(dataframe=self.shipped_awb_data, column_name="Flight Date", ascending=False)
+        TableData.drop_columns(dataframe=self.shipped_awb_df, column_names=["Flight Status"])
+        TableData.drop_columns(dataframe=self.non_shipped_awb_df, column_names=["Consignee", "Flight Number",
+                                                                                "Flight Date", "No. of Pieces"])
+        self.shipped_awb_df["Flight Number"] = self.shipped_awb_df["Flight Number"].str.upper()
+        TableData.sort_columns(dataframe=self.shipped_awb_df, column_name="Flight Date", ascending=False)
 
         # Use apply method on the AWB No. Column. The apply method calls a function on the column (AWB No.)
         # We use lambda as the function call to store the current value in x and add 632- to it.
-        self.shipped_awb_data["AWB No."] = self.shipped_awb_data["AWB No."].apply(lambda x: f"632-{x}")
-        self.not_shipped_awb_data["AWB No."] = self.not_shipped_awb_data["AWB No."].apply(lambda x: f"632-{x}")
+        self.shipped_awb_df["AWB No."] = self.shipped_awb_df["AWB No."].apply(lambda x: f"632-{x}")
+        self.non_shipped_awb_df["AWB No."] = self.non_shipped_awb_df["AWB No."].apply(lambda x: f"632-{x}")
 
-    def home_delivery_creation_data(self, awb_list: list):
-        self.table_data = pd.DataFrame(awb_list)
-        self._format_home_delivery_awbs()
+        TableData.rename_columns(dataframe=self.shipped_awb_df, column_names={"Flight Number": "Flight No.",
+                                                                              "Flight Date": "Date"})
 
-        self.rename_columns(dataframe=self.shipped_awb_data, column_names={"Flight Number": "Flight No.",
-                                                                     "Flight Date": "Date"})
+        self.shipped_awb_df = TableData.rearrange_columns(dataframe=self.shipped_awb_df,
+                                                          column_names=["Date", "Flight No.", "Community",
+                                                                        "AWB No.", "No. of Pieces",
+                                                                        "Consignee"])
 
-        self.shipped_awb_data = self._rearrange_columns(dataframe=self.shipped_awb_data,
-                                                  rearrange_column_names=["Date", "Flight No.", "Community",
-                                                                          "AWB No.", "No. of Pieces", "Consignee"])
+    def _create_home_delivery_data(self) -> None:
+        """
+        Creates the Home Delivery Data.
+        """
+        self.table_df = pd.DataFrame(self.home_delivery_awb_list)
+        self._format_home_delivery_dataframe()
+
+    def get_home_delivery_data(self) -> tuple:
+        """
+        Get Home Delivery Report Data.
+        :return: Returns a tuple of Shipped AWB Dataframe and Non Shipped AWB Dataframe
+        """
+        return self.shipped_awb_df, self.non_shipped_awb_df
