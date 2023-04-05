@@ -3,7 +3,28 @@ from pop_up_window import PopUpWindow
 
 
 class ErrorWindow(PopUpWindow):
+    """
+    Class used to create an Error Pop-up Window.
+
+      Attributes:
+        - error_msg: Text to be put into the error window.
+
+      Methods:
+        - create_report: Creates SLA/Bot or Home Delivery Report
+        - set_column_widths: Set column width
+    """
+
     def __init__(self, theme: str, title: str, size: str, error_message):
+        """
+        Initializes a ErrorWindow Object.
+
+        Creates the Textbox Widgets to display the Error Message.
+
+        :param theme: Theme of the error window.
+        :param title: Title of the error window.
+        :param size: Size of the error window.
+        :param error_message: Text to be put into the error window.
+        """
         super().__init__(theme, title, size)
 
         self.error_msg = error_message

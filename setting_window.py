@@ -24,10 +24,12 @@ class SettingWindow(PopUpWindow):
         Initializes a SettingWindow Object.
 
         Creates all the necessary Widgets/Frames to display the Setting Window GUI
+        :param theme: Theme of the setting window.
+        :param title: Title of the setting window.
+        :param size: Size of the setting winodw.
         """
         super().__init__(theme, title, size)
         self.theme = theme
-
 
         # Get Database Setting Data
         self.setting_data = SettingsData()
