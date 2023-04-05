@@ -1,9 +1,10 @@
 import customtkinter as ctk
-from Settings_Data import SettingsData
 from tkinter import Button, Frame, messagebox, RIDGE
+from Settings_Data import SettingsData
+from pop_up_window import PopUpWindow
 
 
-class SettingWindow(ctk.CTkToplevel):
+class SettingWindow(PopUpWindow):
     """
     A GUI interface for displaying script options.
 
@@ -11,26 +12,22 @@ class SettingWindow(ctk.CTkToplevel):
     Home Delivery Settings. These 2 frames include entry boxes which loads the saved settings from a database. The
     user will be able to change the text in the entry box and save the settings to the database.
 
-    Main Operations:
-        - common_widgets_data(): Creates the data that is associated with widgets that are common in both SLA/Bot Settings and Home Delivery Settings
-        - sla_bot_widgets_data(): Creates the data associated with only the SLA Settings
-        - home_widgets_data(): Creates the data associated with only the Home Delivery Settings
-        - insert_database_settings(widget_data, setting_group): Insert the saved setting data into the appropriate widget data (SLA/Bot Widgets| Home Delivery Widgets).
-        - create_widgets(widget_data): Create widgets to be displayed on the GUI based on thewidget data (SLA/Bot Widgets | Home Delivery Widgets)
-        - load_settings(setting_group, setting_name): Load the specified settings that were stored previously
-        - save_sla_bot_settings(): Save SLA/Bot Settings to the database.
-        - save_home_settings(): Save Home Delivery Settings to the database.
-        - check_values(): Check which Setting Group (SLA/Bot Settings | Home Delivery Settings) has changed.
-        Update the database for whichever setting has been changed.
+     Attributes:
+         - All Widgets/Frames used to create the Setting GUI.
+         - widget_list (private): List of widgets that are created.
+         - previous_values (private): Stores all previous entry box values (Values that are first loaded).
+         - theme: The theme of the GUI.
     """
 
-    def __init__(self):
-        super().__init__()
-        self.geometry("490x430")
-        self.bind("<FocusIn>", self.on_focus_in)  # Focus in on window once its open.
-        self.grab_set()  # Prevent main window from being usable until this window is closed.
-        self.title("Settings")
-        self.resizable(False, False)
+    def __init__(self, theme: str, title: str, size: str):
+        """
+        Initializes a SettingWindow Object.
+
+        Creates all the necessary Widgets/Frames to display the Setting Window GUI
+        """
+        super().__init__(theme, title, size)
+        self.theme = theme
+
 
         # Get Database Setting Data
         self.setting_data = SettingsData()
@@ -38,108 +35,121 @@ class SettingWindow(ctk.CTkToplevel):
         self.home_data = self.setting_data.get_home_delivery_data()
 
         # Create Frames, Button and Custom Menu Bar
-        self.create_menu_bar_frame()
-        self.create_menu_bar()
-        self.create_main_frame()
-        self.create_save_button()
-        self.create_bot_sla_frame()
-        self.create_home_delivery_frame()
+        self._create_menu_bar_frame()
+        self._create_menu_bar()
+        self._create_main_frame()
+        self._create_save_button()
+        self._create_bot_sla_frame()
+        self._create_home_delivery_frame()
 
         # Insert the widgets on Setting Window.
         # Widgets are being stored in a dictionary, so you can access the entry fields later on.
-        self.widget_list = {
-            "SLA/Bot Widgets": self.create_widgets(self.bot_sla_frame, self.sla_bot_widgets_data()),
-            "Home Delivery Widgets": self.create_widgets(self.home_frame, self.home_widgets_data())
+        self._widget_list = {
+            "SLA/Bot Widgets": self._create_widgets(self.bot_sla_frame, self._sla_bot_widgets_data()),
+            "Home Delivery Widgets": self._create_widgets(self.home_frame, self._home_widgets_data())
         }
 
         # Store the previous values
-        self.previous_values = {
-            "SLA/Bot Values": self.get_entry_box_values("SLA/Bot Widgets"),
-            "Home Delivery Values": self.get_entry_box_values("Home Delivery Widgets")
+        self._previous_values = {
+            "SLA/Bot Values": self._get_entry_box_values("SLA/Bot Widgets"),
+            "Home Delivery Values": self._get_entry_box_values("Home Delivery Widgets")
         }
 
-    def on_enter(self, event):
+    def _on_enter(self, event) -> None:
         """
         Change the background color of the "Help" button when hovering over it.
 
         This method changes the background color of the "Help" button when you hover your mouse over it.
 
         :param event: Required by the bind method call, but not used in the method body.
-        :return: None
         """
-        self.menu_bar['background'] = '#E5F3FF'
+        if self.theme == "Dark":
+            self.menu_bar['background'] = '#454545'
+        else:
+            self.menu_bar['background'] = '#E5F3FF'
 
-    def on_leave(self, event):
+    def _on_leave(self, event) -> None:
         """
         Change the background color of the "Help" button when the mouse is not hovering over button.
 
         This method changes the background color of the "Help" button when the mouse is not hovering over button.
 
         :param event: Required by the bind method call, but not used in the method body.
-        :return: None
         """
-        self.menu_bar['background'] = 'SystemButtonFace'
+        if self.theme == "Dark":
+            self.menu_bar['background'] = '#000000'
+        else:
+            self.menu_bar['background'] = 'SystemButtonFace'
 
-    def create_menu_bar_frame(self):
+    def _create_menu_bar_frame(self) -> None:
         """
         Create the Menu Bar Frame for the setting window.
-        This method creates the Menu Bar Frame for the 'Help' Button.
-        :return: None
+        This method creates the Menu Bar Frame for the 'Help' Button. It will also change the color of the menubar
+        based on the theme based in.
         """
-        self.menu_frame = Frame(master=self, height=20)
+
+        if self.theme == "Dark":
+            background_color = "black"
+        else:
+            background_color = None
+
+        self.menu_frame = Frame(master=self, height=20, background=background_color)
         self.menu_frame.pack(fill="both")
 
-    def create_main_frame(self):
+    def _create_main_frame(self) -> None:
         """
         Creates the Main Frame of the Setting Window.
         This method creates the Main Frame of the setting window that will hold 2 different frames. The SLA/Bot Setting
         Frame and the Home Delivery Frame. It will also hold the Save Button widget.
-        :return: None
         """
         self.main_frame = ctk.CTkFrame(master=self, fg_color="transparent")
         self.main_frame.pack()
 
-    def create_bot_sla_frame(self):
+    def _create_bot_sla_frame(self) -> None:
         """
         Create the SLA/Bot Frame of the Setting Window
         This method creates the SLA/Bot Setting Frame. It will hold all the widgets that are associated with the
         SLA/Bot Settings.
-        :return: None
         """
         self.bot_sla_frame = ctk.CTkFrame(master=self.main_frame, height=330)
         self.bot_sla_frame.pack_propagate(False)
         self.bot_sla_frame.pack(side="left", padx=(0, 30), pady=(20, 0))
 
-    def create_home_delivery_frame(self):
+    def _create_home_delivery_frame(self) -> None:
         """
         Create the Home Delivery Frame of the Setting Window
         This method creates the Home Delivery Setting Frame. It will hold all the widgets that are associated with the
         Home Delivery Settings.
-        :return: None
         """
         self.home_frame = ctk.CTkFrame(master=self.main_frame, height=330)
         self.home_frame.pack_propagate(False)
         self.home_frame.pack(side="left", pady=(20, 0))
 
-    def create_menu_bar(self):
+    def _create_menu_bar(self) -> None:
         """
         Creates the Custom Menu Bar.
-        This method creates a custom menu bar, by using buttons on the create_menu_bar_frame.
+        This method creates a custom menu bar, by using buttons on the _create_menu_bar_frame.
         It creates a button to act as a menu bar item It uses bind methods, to change the hover affect when the
         mouse hovers over the button and when it leaves the button. It also provides a pop-up window when clicked.
-        :return: None
         """
-        self.menu_bar = Button(master=self.menu_frame, relief=RIDGE, text="Help", bd=0, command=self.help_pop_up)
-        self.menu_bar.pack(side="left", padx=(5, 0))
-        self.menu_bar.bind("<Enter>", self.on_enter)
-        self.menu_bar.bind("<Leave>", self.on_leave)
+        if self.theme == "Dark":
+            background_color = "black"
+            font_color = "White"
+        else:
+            background_color = None
+            font_color = None
 
-    def help_pop_up(self):
+        self.menu_bar = Button(master=self.menu_frame, relief=RIDGE, text="Help", bd=0, command=self._help_pop_up,
+                               background=background_color, fg=font_color)
+        self.menu_bar.pack(side="left", padx=(5, 0))
+        self.menu_bar.bind("<Enter>", self._on_enter)
+        self.menu_bar.bind("<Leave>", self._on_leave)
+
+    def _help_pop_up(self) -> None:
         """
         Displays a pop-up messagebox.
         This method displays a pop-up messagebox with text displaying what each setting is used for. It is set
         to the parent frame to ensure no other windows can be clicked on.
-        :return: None
         """
 
         # parent=self to ensure that this popup is on top of setting windows, due to bind.
@@ -191,22 +201,21 @@ class SettingWindow(ctk.CTkToplevel):
                                                   "\n"
                                                   "[Default Value: 'SYSCO']")
 
-    def create_save_button(self):
+    def _create_save_button(self) -> None:
         """
         Creates a save button.
         This method creates a save button, which will allow all settings for each setting group (Home Delivery and
         SLA/Bot Settings) to be saved to a database.
-        :return: None
         """
         save_button_frame = ctk.CTkFrame(master=self.main_frame, fg_color="transparent")
         save_button_frame.pack(side="bottom")
 
         self.save_button = ctk.CTkButton(master=save_button_frame, text="Save Settings", width=430,
-                                         command=self.check_values)
+                                         command=self._check_values)
         self.save_button.pack(pady="20")
 
     @classmethod
-    def common_widgets_data(cls):
+    def _common_widgets_data(cls) -> list:
         """
         Store data for common widgets. Common widgets are widgets that display in both the Bot/SLA settings and
         Home Delivery Settings
@@ -223,15 +232,12 @@ class SettingWindow(ctk.CTkToplevel):
 
         return widgets_data
 
-    def sla_bot_widgets_data(self) -> list:
+    def _sla_bot_widgets_data(self) -> list:
         """
         Stores the widget data for widgets only in the SLA/Bot Settings.
         This method will store widget data for SLA/Bot Settings. It will store the label text, entry_placeholder
         text, and the values that should be inserted into the widget box (setting_key). It also stores the
         label header text.
-
-        The "insert_database_settings" method is used to update the "setting_key" values with the data
-        from the database.
 
         :return: Returns a list of Dictionaries.
         """
@@ -241,20 +247,17 @@ class SettingWindow(ctk.CTkToplevel):
             {"label_text": "Days", "entry_placeholder": "8", "setting_key": "DayAmount"},
         ]
 
-        new_sla_widgets = sla_widget_data + self.common_widgets_data()
-        self.insert_database_settings(widget_data=new_sla_widgets, setting_group=self.bot_sla_data)
+        new_sla_widgets = sla_widget_data + self._common_widgets_data()
+        self._insert_database_settings(widget_data=new_sla_widgets, setting_group=self.bot_sla_data)
 
         return new_sla_widgets
 
-    def home_widgets_data(self) -> list:
+    def _home_widgets_data(self) -> list:
         """
         Stores the widget data for widgets only in the Home Delivery Settings.
         This method will store widget data for Home Delivery Settings. It will store the label text, entry_placeholder
         text, and the values that should be inserted into the widget box (setting_key). It also stores the
         label header text.
-
-        The "insert_database_settings" method is used to update the "setting_key" values with the data
-        from the database.
 
         :return: Returns a list of Dictionaries.
         """
@@ -264,12 +267,12 @@ class SettingWindow(ctk.CTkToplevel):
             {"label_text": "Keyword", "entry_placeholder": "SYSCO", "setting_key": "Keyword"},
         ]
 
-        new_home_widgets = home_widget_data + self.common_widgets_data()
-        self.insert_database_settings(widget_data=new_home_widgets, setting_group=self.home_data)
+        new_home_widgets = home_widget_data + self._common_widgets_data()
+        self._insert_database_settings(widget_data=new_home_widgets, setting_group=self.home_data)
 
         return new_home_widgets
 
-    def insert_database_settings(self, widget_data: list, setting_group: dict):
+    def _insert_database_settings(self, widget_data: list, setting_group: dict) -> None:
         """
         Insert the settings that were retrieved from the database.
 
@@ -281,24 +284,22 @@ class SettingWindow(ctk.CTkToplevel):
         The method will also loop through all dictionary widgets while avoiding the first element, as that should be
         the label's header text.
 
-        The "load_setting" method is used to retrieve the value of a setting from the specified setting group.
 
         :param widget_data: Pass in the dictionary list of widgets (ex. new_sla_widgets)
         :param setting_group: Select which dictionary to load. The dictionary will contain the values of the settings
         that were pulled from the database. Valid values are:
             - bot_sla_data and
             - home_data
-        :return: None
         """
 
         # Enumerate to avoid access the first element in list, as that is header text.
         for index, data in enumerate(widget_data):
             if index != 0:
-                data.update({"setting_key": self.load_setting(setting_group=setting_group,
-                                                              setting_name=data["setting_key"])})
+                data.update({"setting_key": self._load_setting(setting_group=setting_group,
+                                                               setting_name=data["setting_key"])})
 
     @classmethod
-    def create_widgets(cls, frame: ctk.CTkFrame, widget_data: list) -> dict:
+    def _create_widgets(cls, frame: ctk.CTkFrame, widget_data: list) -> dict:
         """
         Create all the widgets that were passed in and display them on the Setting Window.
 
@@ -306,12 +307,11 @@ class SettingWindow(ctk.CTkToplevel):
         with the appropriate data that needs to be in each widget.
 
         It also creates an empty dictionary that will store all the entry boxes that were created. When the loop
-        executes it will that empty dictonary with the keys being the label's text associated with the entry box and
+        executes it will that empty dictionary with the keys being the label's text associated with the entry box and
         the values being the entry box object. (Ex. {Days: [Entry Box Object]}
 
-
         :param frame: Pass in the frame you want the widget to be created on.
-        :param widget_data: List of widgets_data (ex. home_widgets_data()). This passes in all the home widgets data
+        :param widget_data: List of widgets_data (ex. _home_widgets_data()). This passes in all the home widgets data
         and creates the all the home widgets along with all the data that should be with those widgets.
         :return: Returns the widget_list dictionary.  Returns this, so you can access all the widget boxes that were
         created.
@@ -342,7 +342,7 @@ class SettingWindow(ctk.CTkToplevel):
         return widget_list
 
     @classmethod
-    def load_setting(cls, setting_group: dict, setting_name: str) -> str:
+    def _load_setting(cls, setting_group: dict, setting_name: str) -> str:
         """
         Loads the specified setting.
 
@@ -362,7 +362,7 @@ class SettingWindow(ctk.CTkToplevel):
                               NumOfDays,
                               FromAirport,
                               ToAirport
-                             If setting_group is home_delivery_settings, valid values are:
+                              If setting_group is home_delivery_settings, valid values are:
                               NumOfMonths,
                               NumOfDays,
                               FromAirport,
@@ -372,53 +372,49 @@ class SettingWindow(ctk.CTkToplevel):
         """
         return setting_group[setting_name]
 
-    def save_sla_bot_settings(self):
+    def _save_sla_bot_settings(self) -> None:
         """
         Update the SLA/Bot Setting Values to the database.
 
         This method will update the SLA/Bot Setting values to the appropriate table in the database.
         It will first get the value for each widget box in the SLA/Bot Settings Frame and pass that into
         the "setting_data" object and call the method "update_sla_bot_settings" which will update the database.
-
-        :return: None
         """
-        day_amount = self.widget_list["SLA/Bot Widgets"]["Days"].get()
-        num_of_months = self.widget_list["SLA/Bot Widgets"]["Number of Months Back"].get()
-        num_of_days = self.widget_list["SLA/Bot Widgets"]["Number of Days Back"].get()
-        from_airport = self.widget_list["SLA/Bot Widgets"]["From Airport"].get()
-        to_airport = self.widget_list["SLA/Bot Widgets"]["To Airport"].get()
+        day_amount = self._widget_list["SLA/Bot Widgets"]["Days"].get()
+        num_of_months = self._widget_list["SLA/Bot Widgets"]["Number of Months Back"].get()
+        num_of_days = self._widget_list["SLA/Bot Widgets"]["Number of Days Back"].get()
+        from_airport = self._widget_list["SLA/Bot Widgets"]["From Airport"].get()
+        to_airport = self._widget_list["SLA/Bot Widgets"]["To Airport"].get()
 
         self.setting_data.update_database(table_name=self.setting_data.BOT_SLA_REPORT_TABLE_NAME,
                                           DayAmount=int(day_amount), NumOfMonths=int(num_of_months),
                                           NumOfDays=int(num_of_days), FromAirport=from_airport,
                                           ToAirport=to_airport)
 
-    def save_home_settings(self):
+    def _save_home_settings(self) -> None:
         """
         Update the Home Delivery Setting Values to the database.
 
         This method will update the Delivery Setting values to the appropriate table in the database.
         It will first get the value for each widget box in the Delivery Setting Frame and pass that into
         the "setting_data" object and call the method "update_home_settings" which will update the database.
-
-        :return: None
         """
-        keyword = self.widget_list["Home Delivery Widgets"]["Keyword"].get()
-        num_of_months = self.widget_list["Home Delivery Widgets"]["Number of Months Back"].get()
-        num_of_days = self.widget_list["Home Delivery Widgets"]["Number of Days Back"].get()
-        from_airport = self.widget_list["Home Delivery Widgets"]["From Airport"].get()
-        to_airport = self.widget_list["Home Delivery Widgets"]["To Airport"].get()
+        keyword = self._widget_list["Home Delivery Widgets"]["Keyword"].get()
+        num_of_months = self._widget_list["Home Delivery Widgets"]["Number of Months Back"].get()
+        num_of_days = self._widget_list["Home Delivery Widgets"]["Number of Days Back"].get()
+        from_airport = self._widget_list["Home Delivery Widgets"]["From Airport"].get()
+        to_airport = self._widget_list["Home Delivery Widgets"]["To Airport"].get()
 
         self.setting_data.update_database(table_name=self.setting_data.HOME_REPORT_TABLE_NAME, Keyword=keyword,
                                           NumOfMonths=int(num_of_months), NumOfDays=int(num_of_days),
                                           FromAirport=from_airport, ToAirport=to_airport)
 
-    def get_entry_box_values(self, widget_group: str) -> dict:
+    def _get_entry_box_values(self, widget_group: str) -> dict:
         """
         Get the current entry box values.
         This method will get all the values in the entry box that is associated with the widget group. There should
         be only 2 groups of widgets: "SLA/Bot Widgets" or "Home Delivery Widgets" which can be access from the attribute
-        widget_list.
+        _widget_list.
 
         :param widget_group: Retrieve the specified setting's widget group's values.
                             valid values are:
@@ -427,10 +423,10 @@ class SettingWindow(ctk.CTkToplevel):
         :return: Returns a dictionary of the widgets and their values. The key should be the widget's label text
         and the value will be the entry box value
         """
-        widget_values = {key: value.get() for (key, value) in self.widget_list[widget_group].items()}
+        widget_values = {key: value.get() for (key, value) in self._widget_list[widget_group].items()}
         return widget_values
 
-    def check_values(self):
+    def _check_values(self) -> None:
         """
         Compare the values of all entry boxes when the setting window is first loaded to when the save button is
         clicked. This will check which setting group was changed (SLA/Bot Setting or Home Delivery Setting). It will
@@ -442,28 +438,18 @@ class SettingWindow(ctk.CTkToplevel):
         attribute stores all the entry box values when the setting window is first opened. The method will create a
         list of current_values which stores all the entry box values that are currently set. It will then compare to see
         if any entry box value is different from the previous_value. If there is a change it will update that setting
-        group to the database as well update the previous_values to current_values.
-
-        :return: None
+        group to the database as well update the _previous_values to current_values.
         """
 
         current_values = {
-            "SLA/Bot Values": self.get_entry_box_values("SLA/Bot Widgets"),
-            "Home Delivery Values": self.get_entry_box_values("Home Delivery Widgets")
+            "SLA/Bot Values": self._get_entry_box_values("SLA/Bot Widgets"),
+            "Home Delivery Values": self._get_entry_box_values("Home Delivery Widgets")
         }
 
-        if current_values["SLA/Bot Values"] != self.previous_values["SLA/Bot Values"]:
-            self.previous_values["SLA/Bot Values"] = current_values["SLA/Bot Values"]
-            self.save_sla_bot_settings()
+        if current_values["SLA/Bot Values"] != self._previous_values["SLA/Bot Values"]:
+            self._previous_values["SLA/Bot Values"] = current_values["SLA/Bot Values"]
+            self._save_sla_bot_settings()
 
-        if current_values["Home Delivery Values"] != self.previous_values["Home Delivery Values"]:
-            self.previous_values["Home Delivery Values"] = current_values["Home Delivery Values"]
-            self.save_home_settings()
-
-    def on_focus_in(self, event):
-        """
-        Bring the Setting Window in front of the Main GUI Window.
-        :param event: Required by the bind method call, but not used in the method body.
-        :return: None
-        """
-        self.attributes("-topmost", True)
+        if current_values["Home Delivery Values"] != self._previous_values["Home Delivery Values"]:
+            self._previous_values["Home Delivery Values"] = current_values["Home Delivery Values"]
+            self._save_home_settings()
