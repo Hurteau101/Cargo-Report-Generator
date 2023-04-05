@@ -3,17 +3,22 @@ import os
 
 
 class WebpageSettings:
-    """A collection of commonly used settings for Selenium webdrivers."""
-    # TODO: Add unlimited keyword arguments for this
-    @classmethod
-    def headless_chrome(cls) -> webdriver.ChromeOptions:
-        """Returns a set of options for running Chrome in headless mode.
+    """
+    A collection of commonly used settings for Selenium webdriver.
 
-              The returned options include a user-agent string, log level settings, SSL certificate and error
-              handling options, and experimental options for downloading files to a default directory without
-              prompting the user.
+      Methods:
+        - headless_chrome: Sets Selenium Webdriver into headless mode.
+    """
+    @staticmethod
+    def headless_chrome() -> webdriver.ChromeOptions:
+        """
+        Returns a set of options for running Chrome in headless mode.
 
-              :return: An instance of the ChromeOptions class with the specified settings.
+        The returned options include a user-agent string, log level settings, SSL certificate and error
+        handling options, and experimental options for downloading files to a default directory without
+        prompting the user.
+
+        :return: An instance of the ChromeOptions class with the specified settings.
 
         """
         options = webdriver.ChromeOptions()

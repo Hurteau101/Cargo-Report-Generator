@@ -14,7 +14,9 @@ class DatabaseConnector:
     """
     A class for setting up a connection to a SQL Server database.
 
-    Operations:
+     Attributes:
+        - connection (pyodbc.connect): Connection for a Database
+     Methods:
         - connection_string(): Returns the connection string for SQL Server.
         - connect(): Connects to the SQL Server database.
         - close_conn(): Closes the connection to the SQL Server database if it's open.
@@ -33,7 +35,7 @@ class DatabaseConnector:
         """
         return f'Driver={{SQL Server}};Server={SERVER_NAME};Database={DATABASE_NAME};UID={UID};PWD={PWD};Trusted_Connection=no'
 
-    def connect(self):
+    def connect(self) -> None:
         """Connect to SQL Server.
 
         Raises:
@@ -41,7 +43,7 @@ class DatabaseConnector:
         """
         self.connection = pyodbc.connect(self.connection_string)
 
-    def close_conn(self):
+    def close_conn(self) -> None:
         """Close Connection to SQL Server if its open"""
         if self.connection:
             self.connection.close()
