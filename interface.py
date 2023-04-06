@@ -526,7 +526,7 @@ class CargoInterface(ctk.CTk):
     def check_login_success(self) -> bool:
         """
         Logins into the cargo webpage and checks if the login was successful.
-        :return: Returns True if it was able to log in successfully, otherwise False
+        :return: Returns True if it was able to log in successfully, otherwise False.
         """
         self.webpage.login()
 
