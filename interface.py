@@ -32,6 +32,7 @@ class CargoInterface(ctk.CTk):
         self.title("Cargo Script")
         self.geometry("370x580")
         self.resizable(False, False)
+        self.iconbitmap("icon.ico")
 
         ctk.set_appearance_mode("Dark")
         ctk.set_default_color_theme("green")
