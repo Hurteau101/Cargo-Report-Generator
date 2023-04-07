@@ -31,3 +31,6 @@ saves time for the user.
 
 ### Report 3
 ![Report 3](https://user-images.githubusercontent.com/80610884/230514683-55b35eb5-f93c-45dc-bd08-06bc3bbea774.PNG)
+
+### Setting Window
+![Settings](https://user-images.githubusercontent.com/80610884/230515571-222d23ec-0b76-4bad-9a4c-10a024c8240c.PNG)
