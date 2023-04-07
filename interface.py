@@ -363,7 +363,7 @@ class CargoInterface(ctk.CTk):
 
     def stop_script_configuration(self) -> None:
         """
-        Configure widgets for when the script stops running.
+        Configure widgets for when the script stops running and set state of widgets.
         """
         self.set_switch(status=False, switch_widget=self.script_status_switch, switch_str_var=self.script_status_var,
                         disable_widget=True, switch_text="Script OFF")
