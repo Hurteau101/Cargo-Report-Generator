@@ -11,6 +11,7 @@ from webpage_loader import CargoWebpage
 from setting_window import SettingWindow
 from webpage_data import WebpageData
 from utils import type_check
+from webpage_settings import WebpageSettings
 
 
 class CargoInterface(ctk.CTk):
@@ -355,7 +356,7 @@ class CargoInterface(ctk.CTk):
         """
         self.clear_text()
         self.insert_text("Starting Script.")
-        self.webpage.start_selenium()
+        self.webpage.start_selenium(options=WebpageSettings.headless_chrome())
         self.start_script_configuration()
         self.insert_text("Loading Cargo Webpage.")
         self.webpage.load_url(self.webpage_data.get_cargo_homepage())
